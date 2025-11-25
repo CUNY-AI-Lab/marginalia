@@ -1,18 +1,26 @@
 import { NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Source } from '@/lib/types';
-import { buildAgentSystemPrompt, buildAgentUserPrompt } from '@/lib/prompts';
+import { buildAgentSystemPrompt, buildAgentUserPrompt, PromptMode } from '@/lib/prompts';
 import { isWithinTokenLimit } from '@/lib/gemini';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(request: NextRequest) {
   try {
-    const { passage, question, sources } = await request.json() as {
+    const { passage, question, sources, sourceId, mode = 'brief', context } = await request.json() as {
       passage: string;
       question?: string;
       sources: Source[];
+      sourceId?: string; // Optional: generate for single source only
+      mode?: PromptMode;
+      context?: string; // Optional: previous comment being responded to
     };
+
+    // If sourceId provided, filter to just that source
+    const targetSources = sourceId
+      ? sources.filter(s => s.id === sourceId)
+      : sources;
 
     if (!passage || !sources || sources.length === 0) {
       return new Response(
@@ -21,12 +29,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (targetSources.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Source not found' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create a ReadableStream for SSE
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        // Process all sources in parallel
-        const promises = sources.map(async (source) => {
+        // Process target sources in parallel
+        const promises = targetSources.map(async (source) => {
           try {
             // Send start event
             controller.enqueue(
@@ -36,13 +51,15 @@ export async function POST(request: NextRequest) {
               })}\n\n`)
             );
 
-            const systemPrompt = buildAgentSystemPrompt(source);
+            const systemPrompt = buildAgentSystemPrompt(source, mode);
 
             // Include full text if within token limit, otherwise just identity layer
             const includeFullText = isWithinTokenLimit(source.fullText);
+
+            // Build user prompt, including context if responding to another comment
             const userPrompt = buildAgentUserPrompt(
               passage,
-              question,
+              context ? `Respond to this comment from another source: "${context}"` : question,
               includeFullText ? source.fullText : undefined
             );
 

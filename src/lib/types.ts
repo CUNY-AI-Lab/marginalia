@@ -45,6 +45,13 @@ export interface AgentResponse {
   sourceId: string;
   content: string;
   done: boolean;
+  replyTo?: string; // ID of comment being replied to (for chain reactions)
+}
+
+// For tracking which sources would engage with a paragraph
+export interface ParagraphEngagement {
+  paragraphIndex: number;
+  engagedSourceIds: string[];
 }
 
 // Colors for sources (cycle through these)

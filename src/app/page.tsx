@@ -11,6 +11,7 @@ interface AgentResponseState {
   sourceId: string;
   content: string;
   done: boolean;
+  replyTo?: string;
 }
 
 export default function Home() {
@@ -20,33 +21,87 @@ export default function Home() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const [responses, setResponses] = useState<AgentResponseState[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingSourceId, setLoadingSourceId] = useState<string | null>(null);
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
+
+  // Engagement tracking: which sources have something to say per paragraph
+  const [engagements, setEngagements] = useState<Map<number, string[]>>(new Map());
+  const [loadingEngagement, setLoadingEngagement] = useState<number | null>(null);
 
   const selectedDoc = documents.find(d => d.id === selectedDocId) || documents[0] || null;
   const selectedParagraph = selectedDoc && selectedParagraphIndex !== null
     ? selectedDoc.paragraphs[selectedParagraphIndex]
     : null;
 
-  const fetchAgentResponses = useCallback(async (passage: string, question?: string) => {
+  // Get engaged source IDs for current paragraph
+  const currentEngagedSourceIds = selectedParagraphIndex !== null
+    ? engagements.get(selectedParagraphIndex) || []
+    : [];
+
+  // Fetch prefilter to see which sources would engage
+  const fetchEngagement = useCallback(async (paragraphIndex: number, passage: string) => {
     if (sources.length === 0) return;
 
-    setIsLoading(true);
-    setResponses(sources.map(s => ({ sourceId: s.id, content: '', done: false })));
+    // Skip if we already have engagement data for this paragraph
+    if (engagements.has(paragraphIndex)) return;
+
+    setLoadingEngagement(paragraphIndex);
+
+    try {
+      const res = await fetch('/api/prefilter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passage,
+          sources,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch engagement');
+
+      const data = await res.json();
+      setEngagements(prev => {
+        const next = new Map(prev);
+        next.set(paragraphIndex, data.engagedSourceIds || []);
+        return next;
+      });
+    } catch (error) {
+      console.error('Error fetching engagement:', error);
+    } finally {
+      setLoadingEngagement(null);
+    }
+  }, [sources, engagements]);
+
+  // Generate response for a single source
+  const generateSingleResponse = useCallback(async (
+    sourceId: string,
+    replyToContent?: string
+  ) => {
+    if (!selectedParagraph || !selectedDoc) return;
+
+    setLoadingSourceId(sourceId);
+
+    // Add placeholder for this source's response
+    setResponses(prev => [
+      ...prev,
+      { sourceId, content: '', done: false, replyTo: replyToContent }
+    ]);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          passage,
-          question,
+          passage: selectedParagraph,
           sources,
+          sourceId,
+          mode: 'brief',
+          context: replyToContent,
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to fetch responses');
+      if (!res.ok) throw new Error('Failed to fetch response');
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No response body');
@@ -68,7 +123,7 @@ export default function Home() {
               if (data.type === 'chunk') {
                 setResponses(prev =>
                   prev.map(r =>
-                    r.sourceId === data.sourceId
+                    r.sourceId === data.sourceId && !r.done
                       ? { ...r, content: r.content + data.content }
                       : r
                   )
@@ -76,7 +131,7 @@ export default function Home() {
               } else if (data.type === 'done') {
                 setResponses(prev =>
                   prev.map(r =>
-                    r.sourceId === data.sourceId
+                    r.sourceId === data.sourceId && !r.done
                       ? { ...r, done: true }
                       : r
                   )
@@ -84,7 +139,7 @@ export default function Home() {
               } else if (data.type === 'error') {
                 setResponses(prev =>
                   prev.map(r =>
-                    r.sourceId === data.sourceId
+                    r.sourceId === data.sourceId && !r.done
                       ? { ...r, content: 'Failed to generate response', done: true }
                       : r
                   )
@@ -97,33 +152,61 @@ export default function Home() {
         }
       }
     } catch (error) {
-      console.error('Error fetching responses:', error);
+      console.error('Error generating response:', error);
+      setResponses(prev =>
+        prev.map(r =>
+          r.sourceId === sourceId && !r.done
+            ? { ...r, content: 'Failed to generate response', done: true }
+            : r
+        )
+      );
     } finally {
-      setIsLoading(false);
+      setLoadingSourceId(null);
     }
-  }, [sources]);
+  }, [selectedParagraph, selectedDoc, sources]);
 
   const handleSelectParagraph = useCallback((index: number) => {
     setSelectedParagraphIndex(index);
+    setResponses([]); // Clear responses when selecting new paragraph
     setPanelOpen(true);
 
     if (selectedDoc) {
       const passage = selectedDoc.paragraphs[index];
-      fetchAgentResponses(passage);
+      fetchEngagement(index, passage);
     }
-  }, [selectedDoc, fetchAgentResponses]);
+  }, [selectedDoc, fetchEngagement]);
 
-  const handleAsk = useCallback((question: string) => {
-    if (selectedParagraph) {
-      fetchAgentResponses(selectedParagraph, question);
+  const handleClickSourceFlag = useCallback((paragraphIndex: number, sourceId: string) => {
+    // Select the paragraph and generate the response
+    setSelectedParagraphIndex(paragraphIndex);
+    setResponses([]);
+    setPanelOpen(true);
+
+    if (selectedDoc) {
+      const passage = selectedDoc.paragraphs[paragraphIndex];
+      fetchEngagement(paragraphIndex, passage);
+      // Generate response for clicked source
+      setTimeout(() => {
+        generateSingleResponse(sourceId);
+      }, 0);
     }
-  }, [selectedParagraph, fetchAgentResponses]);
+  }, [selectedDoc, fetchEngagement, generateSingleResponse]);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAsk = useCallback((question: string) => {
+    // For now, ask all engaged sources
+    // TODO: Could use question for custom queries
+    if (selectedParagraph && currentEngagedSourceIds.length > 0) {
+      generateSingleResponse(currentEngagedSourceIds[0]);
+    }
+  }, [selectedParagraph, currentEngagedSourceIds, generateSingleResponse]);
 
   const handleAddDocument = useCallback((doc: Parameters<typeof addDocument>[0]) => {
     const newDoc = addDocument(doc);
     setSelectedDocId(newDoc.id);
     setSelectedParagraphIndex(null);
     setResponses([]);
+    setEngagements(new Map()); // Clear engagements for new doc
     return newDoc;
   }, [addDocument]);
 
@@ -142,6 +225,7 @@ export default function Home() {
                 setSelectedDocId(e.target.value || null);
                 setSelectedParagraphIndex(null);
                 setResponses([]);
+                setEngagements(new Map());
               }}
               className="text-sm border rounded px-2 py-1"
             >
@@ -190,7 +274,10 @@ export default function Home() {
             document={selectedDoc}
             sources={sources}
             selectedParagraph={selectedParagraphIndex}
+            engagements={engagements}
+            loadingEngagement={loadingEngagement}
             onSelectParagraph={handleSelectParagraph}
+            onClickSourceFlag={handleClickSourceFlag}
           />
         </div>
 
@@ -199,9 +286,11 @@ export default function Home() {
           <div className="w-2/5 flex-shrink-0">
             <ConversationPanel
               sources={sources}
+              engagedSourceIds={currentEngagedSourceIds}
               responses={responses}
-              isLoading={isLoading}
+              loadingSourceId={loadingSourceId}
               selectedParagraph={selectedParagraph}
+              onGenerateResponse={generateSingleResponse}
               onAsk={handleAsk}
               onDeleteSource={deleteSource}
             />

@@ -1,14 +1,26 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Source, IdentityLayer } from '@/lib/types';
+import { Source } from '@/lib/types';
 
 interface SourceUploadProps {
   onAdd: (source: Omit<Source, 'id' | 'createdAt' | 'color'>) => Source;
-  onUpdateIdentity: (id: string, identityLayer: IdentityLayer) => void;
+  onUpdate: (id: string, updates: Partial<Source>) => void;
 }
 
-export default function SourceUpload({ onAdd, onUpdateIdentity }: SourceUploadProps) {
+// Check if a value looks like a default/placeholder that should be replaced
+function isDefaultValue(value: string): boolean {
+  if (!value || value === 'Unknown') return true;
+  // Numeric-only (like "4811578")
+  if (/^\d+$/.test(value)) return true;
+  // Looks like a filename (no spaces, has extension-like ending)
+  if (!/\s/.test(value) && /\.(pdf|txt|md|doc)$/i.test(value)) return true;
+  // Very short and no spaces (likely auto-generated)
+  if (value.length < 4 && !/\s/.test(value)) return true;
+  return false;
+}
+
+export default function SourceUpload({ onAdd, onUpdate }: SourceUploadProps) {
   const [mode, setMode] = useState<'upload' | 'paste'>('upload');
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -113,20 +125,36 @@ export default function SourceUpload({ onAdd, onUpdateIdentity }: SourceUploadPr
       }
 
       // Extract identity in background
+      const submittedTitle = title.trim();
+      const submittedAuthor = author.trim() || 'Unknown';
       try {
         const res = await fetch('/api/extract-identity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: text.slice(0, 100000),
-            title: title.trim(),
-            author: author.trim(),
+            title: submittedTitle,
+            author: submittedAuthor,
           }),
         });
 
         if (res.ok) {
           const data = await res.json();
-          onUpdateIdentity(newSource.id, data.identityLayer);
+          const updates: Partial<Source> = {
+            identityLayer: data.identityLayer,
+          };
+
+          // Update title if current value is a default and LLM found a better one
+          if (data.metadata?.title && isDefaultValue(submittedTitle)) {
+            updates.title = data.metadata.title;
+          }
+
+          // Update author if current value is a default and LLM found a better one
+          if (data.metadata?.author && isDefaultValue(submittedAuthor)) {
+            updates.author = data.metadata.author;
+          }
+
+          onUpdate(newSource.id, updates);
         }
       } catch (err) {
         console.error('Identity extraction failed:', err);

@@ -31,7 +31,7 @@ export default function SourcesPage() {
             <h2 className="text-sm font-medium text-gray-700 mb-3">Add New Source</h2>
             <SourceUpload
               onAdd={addSource}
-              onUpdateIdentity={(id, identityLayer) => updateSource(id, { identityLayer })}
+              onUpdate={updateSource}
             />
           </div>
 

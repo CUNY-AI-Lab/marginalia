@@ -84,14 +84,14 @@ async function extractIdentity(text: string, title: string, sourceId: string): P
   ]);
 
   const response = result.response.text();
-  const identity = parseIdentityLayerResponse(response);
+  const result2 = parseIdentityLayerResponse(response);
 
   // Save identity to file
   const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50);
   const identityFile = join(OUTPUT_DIR, `identity_${safeTitle}.txt`);
-  writeFileSync(identityFile, `IDENTITY LAYER FOR: ${title}\n${'='.repeat(60)}\n\nRAW LLM RESPONSE:\n${response}\n\n${'='.repeat(60)}\nPARSED IDENTITY:\n${identity?.raw || 'PARSE FAILED'}`);
+  writeFileSync(identityFile, `IDENTITY LAYER FOR: ${title}\n${'='.repeat(60)}\n\nRAW LLM RESPONSE:\n${response}\n\n${'='.repeat(60)}\nPARSED IDENTITY:\n${result2?.identityLayer?.raw || 'PARSE FAILED'}`);
 
-  return identity;
+  return result2?.identityLayer || null;
 }
 
 async function getAgentResponse(

@@ -21,16 +21,20 @@ Author: ${author || 'Unknown'}
 ${text}`;
 
     const response = await generateContent(prompt);
-    const identityLayer = parseIdentityLayerResponse(response);
+    const result = parseIdentityLayerResponse(response);
 
-    if (!identityLayer) {
+    if (!result) {
       return NextResponse.json(
         { error: 'Failed to parse identity layer from response' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ identityLayer });
+    // Return both identityLayer and extracted metadata
+    return NextResponse.json({
+      identityLayer: result.identityLayer,
+      metadata: result.metadata
+    });
   } catch (error) {
     console.error('Identity extraction error:', error);
     return NextResponse.json(

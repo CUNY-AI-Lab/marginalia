@@ -4,6 +4,13 @@ export type PromptMode = 'normal' | 'brief';
 
 export const IDENTITY_EXTRACTION_PROMPT = `Analyze this text and extract the following. Be thorough but concise.
 
+FIRST, extract the document metadata by looking at the title, header, byline, or citation information:
+- title: The full title of this work
+- author: The author(s) of this work
+- year: Publication year if identifiable (null if not found)
+
+THEN, analyze the content:
+
 1. CORE COMMITMENTS (2-3 paragraphs)
 What does this text fundamentally believe? What is it trying to prove or establish? What are its central arguments?
 
@@ -24,6 +31,9 @@ Select quotes that capture how this text sounds - its tone, style, level of form
 
 Format your response as JSON with these keys:
 {
+  "title": "...",
+  "author": "...",
+  "year": "..." or null,
   "coreCommitments": "...",
   "antagonists": "...",
   "characteristicMoves": "...",
@@ -118,13 +128,31 @@ export function buildAgentUserPrompt(
   return prompt;
 }
 
-export function parseIdentityLayerResponse(response: string): IdentityLayer | null {
+export interface ExtractedMetadata {
+  title: string | null;
+  author: string | null;
+  year: string | null;
+}
+
+export interface IdentityExtractionResult {
+  identityLayer: IdentityLayer;
+  metadata: ExtractedMetadata;
+}
+
+export function parseIdentityLayerResponse(response: string): IdentityExtractionResult | null {
   try {
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
     const parsed = JSON.parse(jsonMatch[0]);
+
+    // Extract metadata
+    const metadata: ExtractedMetadata = {
+      title: parsed.title || null,
+      author: parsed.author || null,
+      year: parsed.year || null,
+    };
 
     const identityLayer: IdentityLayer = {
       coreCommitments: parsed.coreCommitments || '',
@@ -155,7 +183,7 @@ ${identityLayer.triggers}
 VOICE SAMPLES:
 ${identityLayer.voiceSamples.map(q => `"${q}"`).join('\n')}`;
 
-    return identityLayer;
+    return { identityLayer, metadata };
   } catch {
     console.error('Failed to parse identity layer response');
     return null;

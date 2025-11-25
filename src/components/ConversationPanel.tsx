@@ -34,7 +34,8 @@ export default function ConversationPanel({
   onDeleteSource,
 }: ConversationPanelProps) {
   const [question, setQuestion] = useState('');
-  const [expandedReply, setExpandedReply] = useState<string | null>(null);
+  // Reply chains disabled for now
+  // const [expandedReply, setExpandedReply] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,7 +166,7 @@ export default function ConversationPanel({
                     isStreaming={isStreaming}
                   />
 
-                  {/* Reply options - show when done and not already replying */}
+                  {/* Reply chains disabled for now
                   {response.done && !isStreaming && (
                     <div className="mt-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       {expandedReply === response.sourceId ? (
@@ -206,6 +207,7 @@ export default function ConversationPanel({
                       )}
                     </div>
                   )}
+                  */}
                 </div>
               );
             })}

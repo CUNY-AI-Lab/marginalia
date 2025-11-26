@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateContent } from '@/lib/gemini';
+import { generateContent } from '@/lib/llm';
 import { IDENTITY_EXTRACTION_PROMPT, parseIdentityLayerResponse } from '@/lib/prompts';
 
 export async function POST(request: NextRequest) {
@@ -21,22 +21,28 @@ Author: ${author || 'Unknown'}
 ${text}`;
 
     const response = await generateContent(prompt);
+
+    console.log('[extract-identity] Gemini response length:', response.length);
+    console.log('[extract-identity] Response preview:', response.slice(0, 1000));
+
     const result = parseIdentityLayerResponse(response);
 
     if (!result) {
+      console.error('[extract-identity] Parse failed. Full response:', response);
       return NextResponse.json(
         { error: 'Failed to parse identity layer from response' },
         { status: 500 }
       );
     }
 
-    // Return both identityLayer and extracted metadata
     return NextResponse.json({
       identityLayer: result.identityLayer,
-      metadata: result.metadata
+      metadata: result.metadata,
     });
   } catch (error) {
-    console.error('Identity extraction error:', error);
+    console.error('[extract-identity] Error:', error);
+    console.error('[extract-identity] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[extract-identity] Error message:', error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: 'Failed to extract identity' },
       { status: 500 }

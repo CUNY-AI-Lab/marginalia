@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PDFParse, VerbosityLevel } from 'pdf-parse';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   buildAgentSystemPrompt,
   buildAgentUserPrompt,
@@ -51,28 +51,45 @@ const customPassage = passageArg?.split('=').slice(1).join('=');
 const limitArg = args.find(a => a.startsWith('--limit='));
 const sourceLimit = limitArg ? parseInt(limitArg.split('=')[1]) : undefined;
 
+interface TextItem {
+  str: string;
+  transform: number[];
+}
+
 async function loadPDF(filePath: string): Promise<{ text: string; title: string }> {
   const buffer = readFileSync(filePath);
-  const parser = new PDFParse({
-    data: buffer,
-    verbosity: VerbosityLevel.ERRORS,
-  });
+  const data = new Uint8Array(buffer);
+  const pdf = await getDocument({ data }).promise;
 
-  const textResult = await parser.getText();
-  const infoResult = await parser.getInfo();
-  await parser.destroy();
+  const pageTexts: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const items = textContent.items as TextItem[];
+
+    // Group by y-position for line detection
+    const lines: Map<number, TextItem[]> = new Map();
+    for (const item of items) {
+      if (!item.str.trim()) continue;
+      const y = Math.round(item.transform[5] / 5) * 5;
+      if (!lines.has(y)) lines.set(y, []);
+      lines.get(y)!.push(item);
+    }
+
+    const sortedYs = Array.from(lines.keys()).sort((a, b) => b - a);
+    const pageLines = sortedYs.map(y => {
+      const lineItems = lines.get(y)!;
+      lineItems.sort((a, b) => a.transform[4] - b.transform[4]);
+      return lineItems.map(item => item.str).join(' ');
+    });
+    pageTexts.push(pageLines.join('\n'));
+  }
 
   // Extract title from filename
   const fileName = filePath.split('/').pop() || '';
-  let title = fileName.replace(/\.pdf$/i, '');
+  const title = fileName.replace(/\.pdf$/i, '');
 
-  // Try to get title from metadata
-  const metadata = infoResult.metadata as unknown as Record<string, unknown> | null;
-  if (metadata?.Title && typeof metadata.Title === 'string') {
-    title = metadata.Title;
-  }
-
-  return { text: textResult.text, title };
+  return { text: pageTexts.join('\n\n'), title };
 }
 
 async function extractIdentity(text: string, title: string, sourceId: string): Promise<IdentityLayer | null> {

@@ -38,3 +38,23 @@ next-env.d.ts
 # test files
 test/*.pdf
 test/output/
+
+# environment
+.env
+
+# editor/IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# logs
+*.log
+logs/
+
+# Claude Code
+.claude/

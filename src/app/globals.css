@@ -10,3 +10,15 @@ body {
 .font-serif {
   font-family: Georgia, 'Times New Roman', serif;
 }
+
+/* Smooth color transitions for theme switching */
+* {
+  transition-property: background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Disable transitions on page load to prevent flash */
+.no-transitions * {
+  transition: none !important;
+}

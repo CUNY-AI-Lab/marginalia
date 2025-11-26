@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Source } from '@/lib/types';
+import { generateContent } from '@/lib/llm';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Use a fast model for prefiltering
+const PREFILTER_MODEL = 'google/gemini-2.5-flash';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,12 +43,7 @@ Which sources would have something substantive to contribute to this discussion?
 Return ONLY a JSON array of source IDs that should respond. Example: ["source-1", "source-3"]
 If none would have something substantive to add, return: []`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-    });
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await generateContent(prompt, undefined, PREFILTER_MODEL);
 
     // Parse the JSON array from the response
     const jsonMatch = text.match(/\[[\s\S]*?\]/);

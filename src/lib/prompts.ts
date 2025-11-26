@@ -1,4 +1,55 @@
-import { Source, IdentityLayer } from './types';
+import { Source, IdentityLayer, StructuredParagraph } from './types';
+
+export const STRUCTURE_REFINEMENT_PROMPT = `You are refining the structure detection for a document that was analyzed using font-based heuristics.
+
+The current structure was detected automatically based on font sizes:
+- h1: Title/largest headings (font 1.5x+ body text)
+- h2: Major section headings (font 1.25-1.5x body text)
+- h3: Subsection headings (font 1.1-1.25x body text)
+- body: Regular paragraph text
+
+Your task is to refine this classification. Fix common issues:
+1. Page numbers or headers incorrectly marked as h1
+2. Section headings missed because of similar font size to body
+3. Incorrect heading hierarchy (h3 shouldn't come before h2)
+4. Very short body paragraphs that are actually headings
+5. Merge paragraphs that were incorrectly split
+
+Return a JSON array with the refined structure, maintaining the original content:
+[
+  { "type": "h1", "content": "Document Title" },
+  { "type": "body", "content": "First paragraph..." },
+  { "type": "h2", "content": "Section Heading" },
+  ...
+]
+
+IMPORTANT:
+- Keep ALL content - do not remove or summarize paragraphs
+- Only change the "type" classification when needed
+- Preserve the exact text content
+- Return ONLY the JSON array, no commentary
+
+Document structure to refine:`;
+
+export function parseStructureRefinementResponse(response: string): StructuredParagraph[] | null {
+  try {
+    // Try to extract JSON array from the response
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed)) return null;
+
+    // Validate and normalize the structure
+    return parsed.map((item: { type?: string; content?: string }) => ({
+      type: (['h1', 'h2', 'h3', 'body'].includes(item.type || '') ? item.type : 'body') as 'h1' | 'h2' | 'h3' | 'body',
+      content: String(item.content || ''),
+    }));
+  } catch {
+    console.error('Failed to parse structure refinement response');
+    return null;
+  }
+}
 
 export type PromptMode = 'normal' | 'brief';
 
@@ -26,8 +77,8 @@ What words or phrases are central to this text's argument? Include how the text 
 5. TRIGGERS (1 paragraph)
 What topics or claims would provoke a strong response from this text? What does it care most about?
 
-6. VOICE SAMPLES (3-5 short quotes)
-Select quotes that capture how this text sounds - its tone, style, level of formality.
+6. CHARACTERISTIC PASSAGES (3-5 short quotes)
+Select quotes that capture the text's tone, style, and typical phrasing.
 
 Format your response as JSON with these keys:
 {
@@ -44,58 +95,54 @@ Format your response as JSON with these keys:
 
 export function buildAgentSystemPrompt(source: Source, mode: PromptMode = 'normal'): string {
   if (mode === 'brief') {
-    return `You are "${source.title}" by ${source.author}, participating in a seminar discussion.
+    return `You are analyzing "${source.title}" by ${source.author}.
 
-${source.identityLayer ? `IDENTITY:\n${source.identityLayer.raw}\n` : ''}
+${source.identityLayer ? `ABOUT THIS TEXT:\n${source.identityLayer.raw}\n` : ''}
 
-YOUR FULL TEXT is provided below. Use it to find relevant passages.
+YOUR TASK: Find relevant passages and respond in third person.
 
 INSTRUCTIONS:
-1. First, search your full text for passages relevant to the topic being discussed
-2. If you find something relevant, respond in 1-2 sentences using your distinctive voice
-3. Include a brief quote from your text to ground your response
-4. If the topic doesn't connect to your concerns, respond with just "—"
+1. Search the full text for passages relevant to the topic being discussed
+2. If relevant, respond in 1-2 sentences using "this text" or the title as subject
+3. Include a brief quote to ground your response
+4. If the topic doesn't connect to the text's concerns, respond with just "—"
 
-FORMAT: [Your 1-2 sentence response with inline quote from your text]
+FORMAT: [1-2 sentence response with inline quote]
 
 EXAMPLES OF GOOD RESPONSES:
-- "This overlooks the human element—'for the foreseeable future it is people that will continue to make libraries effective and not machines.'"
-- "Privacy concerns are paramount; we 'prioritize the security and privacy of users in the use of AI tools.'"
-- "—" (when topic is outside your concerns)
+- "This text emphasizes human mediation—'for the foreseeable future it is people that will continue to make libraries effective.'"
+- "The argument here resists technological determinism; it insists 'we prioritize the security and privacy of users.'"
+- "—" (when topic is outside the text's concerns)
 
 DO NOT:
+- Use "I" or "my"—always third person
 - Give generic commentary that could come from any source
-- Summarize your whole text
+- Summarize the whole text
 - Hedge with phrases like "This is an interesting point"
-- Exceed 2 sentences
-- Speak in third person about "the author" or "this text"`;
+- Exceed 2 sentences`;
   }
 
   // Normal mode
-  return `You embody the perspective of "${source.title}" by ${source.author}.
+  return `You are analyzing "${source.title}" by ${source.author}.
 
-You have access to the full text of this work. When responding, speak FROM this text's perspective - its commitments, its vocabulary, its way of arguing. You are not summarizing the text; you are speaking as if you were the text itself participating in a seminar discussion.
+Respond as an analyst speaking FOR this text in third person. Use "this text," the title, or "the argument" as subject—never "I" or "my."
 
-${source.identityLayer ? `
-IDENTITY:
-${source.identityLayer.raw}
-` : ''}
+The text can argue, resist, emphasize, push back—but you are describing its position, not voicing an author.
 
-Behavioral guidelines:
-- Respond to what's being discussed, not to everything you could say
+${source.identityLayer ? `ABOUT THIS TEXT:\n${source.identityLayer.raw}\n` : ''}
+
+Guidelines:
+- Respond to what's being discussed, not everything the text addresses
 - Be concise (2-4 sentences typical, expand only when specifically asked)
-- If the passage doesn't touch on your concerns, say so briefly or acknowledge it's not central to your argument
-- If you disagree with something, engage with it directly
-- Use the characteristic vocabulary and framing of your source
-- Ground your responses in specific arguments from the text when relevant
-- Include brief quotes from your text to support your points
+- Use the text's characteristic vocabulary when apt
+- Ground claims in specific quotes from the text
+- If the passage doesn't touch the text's concerns, say so briefly
 
 Do not:
-- Summarize the whole text
-- Speak in third person about "the author" or "this text"
+- Use first person ("I", "my", "me")
 - Give generic academic commentary
-- Hedge excessively with disclaimers
-- Start responses with "As [title]..." or similar framing`;
+- Summarize the whole text
+- Hedge excessively with disclaimers`;
 }
 
 export const PREFILTER_PROMPT = `Given a passage and a list of sources, determine which sources would have something meaningful to say.
@@ -106,10 +153,16 @@ Return a JSON array of source IDs that should respond. Example: ["source-1", "so
 
 If no sources would have something substantive to add, return an empty array: []`;
 
+export interface ConversationHistoryEntry {
+  question?: string;
+  response: string;
+}
+
 export function buildAgentUserPrompt(
   passage: string,
   question?: string,
-  fullText?: string
+  fullText?: string,
+  conversationHistory?: ConversationHistoryEntry[]
 ): string {
   let prompt = '';
 
@@ -119,10 +172,23 @@ export function buildAgentUserPrompt(
 
   prompt += `PASSAGE BEING DISCUSSED:\n"${passage}"`;
 
+  // Include conversation history for followup context
+  if (conversationHistory && conversationHistory.length > 0) {
+    prompt += `\n\n---\n\nPREVIOUS ANALYSIS:`;
+    for (const entry of conversationHistory) {
+      if (entry.question) {
+        prompt += `\n\nReader asked: "${entry.question}"`;
+      }
+      prompt += `\nPrevious response: "${entry.response}"`;
+    }
+    prompt += `\n\n---`;
+  }
+
   if (question) {
-    prompt += `\n\nQUESTION: ${question}`;
-  } else {
-    prompt += `\n\nRespond to this passage from your perspective. What does it get right? What does it miss? What would you add or challenge?`;
+    prompt += `\n\nNEW QUESTION: ${question}`;
+  } else if (!conversationHistory || conversationHistory.length === 0) {
+    // Only add the default prompt if this is the first exchange
+    prompt += `\n\nHow does this text relate to the passage? What does the text affirm, challenge, or add?`;
   }
 
   return prompt;
@@ -143,9 +209,20 @@ export function parseIdentityLayerResponse(response: string): IdentityExtraction
   try {
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.error('[parseIdentityLayer] No JSON object found in response');
+      console.error('[parseIdentityLayer] Response starts with:', response.slice(0, 500));
+      return null;
+    }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error('[parseIdentityLayer] JSON parse error:', parseError);
+      console.error('[parseIdentityLayer] Attempted to parse:', jsonMatch[0].slice(0, 1000));
+      return null;
+    }
 
     // Extract metadata
     const metadata: ExtractedMetadata = {
@@ -180,12 +257,13 @@ ${identityLayer.vocabulary.join(', ')}
 TRIGGERS:
 ${identityLayer.triggers}
 
-VOICE SAMPLES:
+CHARACTERISTIC PASSAGES:
 ${identityLayer.voiceSamples.map(q => `"${q}"`).join('\n')}`;
 
     return { identityLayer, metadata };
-  } catch {
-    console.error('Failed to parse identity layer response');
+  } catch (error) {
+    console.error('[parseIdentityLayer] Unexpected error:', error);
+    console.error('[parseIdentityLayer] Response length:', response.length);
     return null;
   }
 }

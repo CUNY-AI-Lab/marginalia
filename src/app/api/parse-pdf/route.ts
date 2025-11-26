@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now();
 
-    // Send to OpenRouter with Gemini's native PDF handling
+    // Send to OpenRouter with pdf-text plugin for faster extraction
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -32,12 +32,13 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: PDF_EXTRACTION_MODEL,
+        plugins: [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }],
         messages: [{
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `Extract all text from this PDF document.
+              text: `Clean up and structure the text extracted from this PDF document.
 
 IMPORTANT FORMATTING RULES:
 1. Preserve paragraph structure - keep logical paragraph breaks

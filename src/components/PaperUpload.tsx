@@ -7,17 +7,23 @@ interface PaperUploadProps {
   onAdd: (paper: Omit<Paper, 'id' | 'createdAt' | 'updatedAt' | 'color' | 'paragraphs'> & { paragraphs?: StructuredParagraph[] }) => Paper;
 }
 
+type UploadStatus = 'idle' | 'reading' | 'processing' | 'done';
+
 export default function PaperUpload({ onAdd }: PaperUploadProps) {
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [pastedText, setPastedText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
+  const [uploadFileName, setUploadFileName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isUploading = uploadStatus !== 'idle';
 
   const processFile = useCallback(
     async (file: File) => {
-      setIsUploading(true);
+      setUploadFileName(file.name);
+      setUploadStatus('reading');
       setError(null);
 
       try {
@@ -27,6 +33,7 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
         let structuredParagraphs: StructuredParagraph[] | undefined;
 
         if (isPDF) {
+          setUploadStatus('processing');
           const formData = new FormData();
           formData.append('file', file);
 
@@ -38,7 +45,6 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
           if (!res.ok) throw new Error('Failed to parse PDF');
           const data = await res.json();
           text = data.text;
-          // Get structured paragraphs from font-based detection
           structuredParagraphs = data.paragraphs;
         } else {
           text = await file.text();
@@ -56,7 +62,7 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
           fullText: text,
           identityLayer: null,
           status: 'processing',
-          paragraphs: structuredParagraphs, // Include structured paragraphs for PDFs
+          paragraphs: structuredParagraphs,
         });
 
         // Reset for next upload
@@ -67,7 +73,8 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
         setError('Failed to read file. Please try again.');
         console.error(err);
       } finally {
-        setIsUploading(false);
+        setUploadStatus('idle');
+        setUploadFileName('');
       }
     },
     [onAdd]
@@ -153,8 +160,23 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
             />
           </svg>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            {isUploading ? 'Uploading...' : 'Drop a file here'}
+            {uploadStatus === 'idle' && 'Drop a file here'}
+            {uploadStatus === 'reading' && 'Reading file...'}
+            {uploadStatus === 'processing' && (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Processing PDF...
+              </span>
+            )}
           </p>
+          {uploadStatus === 'processing' && uploadFileName && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 truncate max-w-[200px] mx-auto">
+              {uploadFileName}
+            </p>
+          )}
           <input
             ref={fileInputRef}
             type="file"

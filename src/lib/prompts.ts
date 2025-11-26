@@ -46,7 +46,6 @@ export function parseStructureRefinementResponse(response: string): StructuredPa
       content: String(item.content || ''),
     }));
   } catch {
-    console.error('Failed to parse structure refinement response');
     return null;
   }
 }
@@ -210,17 +209,13 @@ export function parseIdentityLayerResponse(response: string): IdentityExtraction
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('[parseIdentityLayer] No JSON object found in response');
-      console.error('[parseIdentityLayer] Response starts with:', response.slice(0, 500));
       return null;
     }
 
     let parsed;
     try {
       parsed = JSON.parse(jsonMatch[0]);
-    } catch (parseError) {
-      console.error('[parseIdentityLayer] JSON parse error:', parseError);
-      console.error('[parseIdentityLayer] Attempted to parse:', jsonMatch[0].slice(0, 1000));
+    } catch {
       return null;
     }
 
@@ -261,9 +256,7 @@ CHARACTERISTIC PASSAGES:
 ${identityLayer.voiceSamples.map(q => `"${q}"`).join('\n')}`;
 
     return { identityLayer, metadata };
-  } catch (error) {
-    console.error('[parseIdentityLayer] Unexpected error:', error);
-    console.error('[parseIdentityLayer] Response length:', response.length);
+  } catch {
     return null;
   }
 }

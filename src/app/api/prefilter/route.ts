@@ -47,14 +47,20 @@ If none would have something substantive to add, return: []`;
 
     // Parse the JSON array from the response
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
-    const engagedSourceIds: string[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    let engagedSourceIds: string[] = [];
+    if (jsonMatch) {
+      try {
+        engagedSourceIds = JSON.parse(jsonMatch[0]);
+      } catch {
+        // Invalid JSON from LLM response, return empty array
+      }
+    }
 
     return new Response(
       JSON.stringify({ engagedSourceIds }),
       { headers: { 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Prefilter error:', error);
+  } catch {
     return new Response(
       JSON.stringify({ error: 'Failed to prefilter sources' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -17,10 +17,6 @@ export async function POST(request: NextRequest) {
     const filename = file.name;
     const title = filename.replace(/\.pdf$/i, '');
 
-    console.log(`[parse-pdf] Processing ${filename} (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB)`);
-
-    const startTime = Date.now();
-
     // Send to OpenRouter with pdf-text plugin for faster extraction
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -67,8 +63,6 @@ Output the clean, well-structured text.`
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[parse-pdf] OpenRouter error:', response.status, errorText);
       return NextResponse.json(
         { error: `PDF processing failed: ${response.status}` },
         { status: 500 }
@@ -78,9 +72,6 @@ Output the clean, well-structured text.`
     const result = await response.json();
     const extractedText = result.choices?.[0]?.message?.content || '';
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[parse-pdf] Extracted ${extractedText.length} chars in ${elapsed}s`);
-
     // Parse the extracted text into structured paragraphs based on markdown markers
     const paragraphs = parseExtractedText(extractedText);
 
@@ -89,8 +80,7 @@ Output the clean, well-structured text.`
       title,
       paragraphs,
     });
-  } catch (error) {
-    console.error('PDF parsing error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to parse PDF' },
       { status: 500 }

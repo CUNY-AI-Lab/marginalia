@@ -24,16 +24,10 @@ export async function generateContent(
   }
   messages.push({ role: 'user', content: prompt });
 
-  const startTime = Date.now();
-  console.log(`[llm] Starting request to ${model}...`);
-
   const response = await client.chat.completions.create({
     model,
     messages,
   });
-
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[llm] Response received in ${elapsed}s`);
 
   return response.choices[0]?.message?.content || '';
 }

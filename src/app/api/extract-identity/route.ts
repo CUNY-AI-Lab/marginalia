@@ -22,13 +22,9 @@ ${text}`;
 
     const response = await generateContent(prompt);
 
-    console.log('[extract-identity] Gemini response length:', response.length);
-    console.log('[extract-identity] Response preview:', response.slice(0, 1000));
-
     const result = parseIdentityLayerResponse(response);
 
     if (!result) {
-      console.error('[extract-identity] Parse failed. Full response:', response);
       return NextResponse.json(
         { error: 'Failed to parse identity layer from response' },
         { status: 500 }
@@ -39,10 +35,7 @@ ${text}`;
       identityLayer: result.identityLayer,
       metadata: result.metadata,
     });
-  } catch (error) {
-    console.error('[extract-identity] Error:', error);
-    console.error('[extract-identity] Error type:', error instanceof Error ? error.constructor.name : typeof error);
-    console.error('[extract-identity] Error message:', error instanceof Error ? error.message : String(error));
+  } catch {
     return NextResponse.json(
       { error: 'Failed to extract identity' },
       { status: 500 }

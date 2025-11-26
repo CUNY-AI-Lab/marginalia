@@ -1,0 +1,39 @@
+{
+  "passages": [
+    {
+      "id": "ngulube-stakeholders",
+      "name": "Ngulube: Stakeholders and librarian leadership",
+      "text": "Academic libraries serve a large spectrum of members of society including students, faculty, vendors, government, and the public. All these stakeholders are going to be affected by using AI technologies in academic libraries in one way or the other. Librarians will be expected to make knowledgeable judgments and take a leadership role in the growing conversation about ethics, bias, and privacy in AI as it relates to their stakeholders and themselves. The need for this discussion is highlighted by the potential for bias in machine learning models, uncertain fairness in AI decision-making systems, and invasions of privacy in data collection."
+    },
+    {
+      "id": "ngulube-double-edged",
+      "name": "Ngulube: Double-edged sword",
+      "text": "The adoption of AI by organizations is like the proverbial double-edged sword. Its integration has brought many advantages and drawbacks. Ethics in the adoption of AI applications is one of the major global concerns. While ethical concerns surrounding AI are not new, the discourse has acquired impetus due to technological advancements in deep learning and machine learning."
+    },
+    {
+      "id": "ngulube-training-data",
+      "name": "Ngulube: Training data and bias",
+      "text": "Generative AI technologies depend on training data to operate. That partly explains why the European Association of Research Managers and Administrators stated that AI technologies have 'not one gram of intelligence.' There is potential for the training data for AI systems to be incomplete, incorrect, or biased. Bad data can lead to wrong decisions and mistakes in the processing of tasks. Secondly, a library's goal of ensuring that all people have equitable access to information may be compromised by inaccurate or unjust responses."
+    },
+    {
+      "id": "ngulube-privacy",
+      "name": "Ngulube: Privacy and patron data",
+      "text": "Academic libraries collect personal information and records of individual information seeking behavior. AI applications have the potential to produce sensitive data about library patrons, including financial, medical, and personal information that should be kept private and shared only with permission. Concerns over who can access and use such data are raised by the lack of clarity surrounding its collection, processing, and storage when used by AI applications."
+    },
+    {
+      "id": "ngulube-transparency",
+      "name": "Ngulube: Transparency and accountability",
+      "text": "There should be transparency in the deployment of AI technologies. Academic libraries should remain transparent and accountable about the decisions they make even if some of their activities are performed by AI technologies. Replacement of human oversight and accountability should be guarded. Policies and standard operating procedures can be established to achieve transparency and accountability."
+    },
+    {
+      "id": "ngulube-risks",
+      "name": "Ngulube: Detrimental consequences",
+      "text": "AI technologies can have detrimental consequences on libraries. AI systems' analysis of personal data may have serious negative effects and pose a real danger to data security. Predicting AI-based technology might be difficult and its safe use is not assured. For instance, robots using AI technology have the potential to malfunction and create accidents in libraries."
+    },
+    {
+      "id": "unrelated",
+      "name": "Unrelated passage (should trigger passes)",
+      "text": "The migration patterns of monarch butterflies have fascinated scientists for decades, with recent GPS tracking revealing previously unknown stopover sites along the eastern seaboard."
+    }
+  ]
+}

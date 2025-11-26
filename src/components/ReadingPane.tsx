@@ -1,5 +1,6 @@
 'use client';
 
+import Markdown from 'react-markdown';
 import { Document, Source, ParagraphType } from '@/lib/types';
 
 // Typography styles for different paragraph types
@@ -106,9 +107,19 @@ export default function ReadingPane({
                 ) : null}
               </div>
 
-              <Element className={typeStyles}>
+              <Markdown
+                components={{
+                  // Override default paragraph to use our Element type with styles
+                  p: ({ children }) => <Element className={typeStyles}>{children}</Element>,
+                  // Style inline elements
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  // Handle superscript for footnotes (unicode superscript numbers)
+                  sup: ({ children }) => <sup className="text-xs align-super">{children}</sup>,
+                }}
+              >
                 {para.content}
-              </Element>
+              </Markdown>
             </div>
           );
         })}

@@ -99,7 +99,14 @@ export default function ConversationPanel({
                       {hasResponded ? (
                         <span className="text-xs text-gray-400 dark:text-gray-500">responded</span>
                       ) : isLoading ? (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">analyzing...</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                          <span className="flex gap-0.5">
+                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                          analyzing
+                        </span>
                       ) : isEngaged ? (
                         <button
                           onClick={() => onGenerateResponse(source.id)}
@@ -211,14 +218,32 @@ export default function ConversationPanel({
             })}
 
             {/* Loading indicator */}
-            {loadingSourceId && !responses.some(r => r.sourceId === loadingSourceId) && (
-              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
-                <div className="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-300 rounded-full" />
-                <span>
-                  Analyzing {getSourceById(loadingSourceId)?.title || 'source'}...
-                </span>
-              </div>
-            )}
+            {loadingSourceId && !responses.some(r => r.sourceId === loadingSourceId) && (() => {
+              const loadingSource = getSourceById(loadingSourceId);
+              return (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full animate-pulse"
+                      style={{ backgroundColor: loadingSource?.color || '#888' }}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {loadingSource?.title || 'Source'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                        <span>Analyzing passage</span>
+                        <span className="flex gap-0.5 ml-1">
+                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* More sources available */}
             {responses.length > 0 && pendingEngagedSources.length > 0 && (

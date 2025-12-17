@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['pdfjs-dist'],
-  },
+  serverExternalPackages: ['pdfjs-dist'],
 };
 
 export default nextConfig;

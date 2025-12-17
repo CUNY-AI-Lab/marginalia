@@ -7,10 +7,19 @@ const client = new OpenAI({
     'HTTP-Referer': 'https://marginalia.app',
     'X-Title': 'Marginalia',
   },
+  timeout: 60000, // 60 second timeout for LLM requests
 });
 
-// Default model - easy to change
-const DEFAULT_MODEL = 'google/gemini-3-pro-preview';
+// Default model - configurable via environment variable
+// Gemini 3 Flash: frontier intelligence built for speed at fraction of cost
+const DEFAULT_MODEL = process.env.LLM_MODEL || 'google/gemini-3-flash-preview';
+
+export class LLMError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message);
+    this.name = 'LLMError';
+  }
+}
 
 export async function generateContent(
   prompt: string,
@@ -24,12 +33,17 @@ export async function generateContent(
   }
   messages.push({ role: 'user', content: prompt });
 
-  const response = await client.chat.completions.create({
-    model,
-    messages,
-  });
+  try {
+    const response = await client.chat.completions.create({
+      model,
+      messages,
+    });
 
-  return response.choices[0]?.message?.content || '';
+    return response.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error('LLM generateContent failed:', error);
+    throw new LLMError('Failed to generate content', error);
+  }
 }
 
 export async function* streamContent(
@@ -44,17 +58,22 @@ export async function* streamContent(
   }
   messages.push({ role: 'user', content: prompt });
 
-  const stream = await client.chat.completions.create({
-    model,
-    messages,
-    stream: true,
-  });
+  try {
+    const stream = await client.chat.completions.create({
+      model,
+      messages,
+      stream: true,
+    });
 
-  for await (const chunk of stream) {
-    const text = chunk.choices[0]?.delta?.content;
-    if (text) {
-      yield text;
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content;
+      if (text) {
+        yield text;
+      }
     }
+  } catch (error) {
+    console.error('LLM streamContent failed:', error);
+    throw new LLMError('Failed to stream content', error);
   }
 }
 

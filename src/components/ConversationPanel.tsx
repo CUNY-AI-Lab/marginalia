@@ -22,7 +22,6 @@ interface ConversationPanelProps {
   onSetAskingSource: (sourceId: string | null) => void;
   onGenerateResponse: (sourceId: string, replyToContent?: string) => void;
   onAsk: (question: string) => void;
-  onDeleteSource: (id: string) => void;
   onClearAndRefresh?: () => void;
 }
 
@@ -36,13 +35,9 @@ export default function ConversationPanel({
   onSetAskingSource,
   onGenerateResponse,
   onAsk,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onDeleteSource,
   onClearAndRefresh,
 }: ConversationPanelProps) {
   const [question, setQuestion] = useState('');
-  // Reply chains disabled for now
-  // const [expandedReply, setExpandedReply] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +54,7 @@ export default function ConversationPanel({
   const pendingEngagedSources = engagedSourceIds
     .filter(id => !respondedSourceIds.has(id))
     .map(id => getSourceById(id))
-    .filter((s): s is Source => s !== null);
+    .filter((s): s is Source => s !== undefined && s !== null);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">

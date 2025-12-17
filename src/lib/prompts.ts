@@ -1,4 +1,4 @@
-import { Source, IdentityLayer, StructuredParagraph } from './types';
+import { Source, IdentityLayer, StructuredParagraph, EngagementType, EngagementInfo } from './types';
 
 export const STRUCTURE_REFINEMENT_PROMPT = `You are refining the structure detection for a document that was analyzed using font-based heuristics.
 
@@ -92,12 +92,35 @@ Format your response as JSON with these keys:
   "voiceSamples": ["quote1", "quote2", ...]
 }`;
 
-export function buildAgentSystemPrompt(source: Source, mode: PromptMode = 'normal'): string {
+// Instructions for each engagement type
+const ENGAGEMENT_INSTRUCTIONS: Record<EngagementType, string> = {
+  affirms: `Find where this text makes a similar argument. Quote a passage that supports the same point, then briefly note the alignment.`,
+  extends: `Find where this text goes further than the passage. What does it add? Quote the relevant extension.`,
+  challenges: `Find where this text would push back. What specific claim or framing does it resist? Quote the counterargument.`,
+  complicates: `Find where this text would say "yes, but." What caveat or qualification would it add? Quote the complicating factor.`,
+  evidence: `Find a specific case, example, or data point from this text that bears on the passage. Quote the evidence.`,
+  reframes: `This text wouldn't engage with the question as posed. What question would it ask instead? What framing does it prefer? Quote the reframing.`,
+  contextualizes: `Find where this text provides historical, theoretical, or disciplinary context for the passage's concerns. Quote the contextualizing move.`,
+};
+
+export function buildAgentSystemPrompt(
+  source: Source,
+  mode: PromptMode = 'normal',
+  engagement?: EngagementInfo
+): string {
+  // Build engagement-specific instruction if provided
+  const engagementSection = engagement
+    ? `\nYOUR ENGAGEMENT TYPE: ${engagement.type.toUpperCase()}
+Angle: ${engagement.angle}
+
+${ENGAGEMENT_INSTRUCTIONS[engagement.type]}\n`
+    : '';
+
   if (mode === 'brief') {
     return `You are analyzing "${source.title}" by ${source.author}.
 
 ${source.identityLayer ? `ABOUT THIS TEXT:\n${source.identityLayer.raw}\n` : ''}
-
+${engagementSection}
 YOUR TASK: Find relevant passages and respond in third person.
 
 INSTRUCTIONS:
@@ -129,7 +152,7 @@ Respond as an analyst speaking FOR this text in third person. Use "this text," t
 The text can argue, resist, emphasize, push back—but you are describing its position, not voicing an author.
 
 ${source.identityLayer ? `ABOUT THIS TEXT:\n${source.identityLayer.raw}\n` : ''}
-
+${engagementSection}
 Guidelines:
 - Respond to what's being discussed, not everything the text addresses
 - Be concise (2-4 sentences typical, expand only when specifically asked)
@@ -144,11 +167,26 @@ Do not:
 - Hedge excessively with disclaimers`;
 }
 
-export const PREFILTER_PROMPT = `Given a passage and a list of sources, determine which sources would have something meaningful to say.
+export const PREFILTER_PROMPT = `Given a passage and a list of sources, determine which sources would engage and HOW they would engage.
 
 Be selective - only include sources that would genuinely engage with this content based on their core commitments and concerns. If a source's main arguments don't relate to the passage, exclude it.
 
-Return a JSON array of source IDs that should respond. Example: ["source-1", "source-3"]
+Return a JSON array with engagement details:
+[
+  { "sourceId": "...", "type": "challenges", "angle": "brief description of specific angle" },
+  { "sourceId": "...", "type": "evidence", "angle": "brief description" }
+]
+
+Engagement types:
+- affirms: agrees with the passage's point
+- extends: builds on or adds to the idea
+- challenges: disagrees or pushes back
+- complicates: agrees but with significant caveats
+- evidence: has relevant case study or data
+- reframes: would approach the question differently
+- contextualizes: adds background or theoretical framing
+
+The "angle" should be a brief (5-15 word) description of the specific way the source engages.
 
 If no sources would have something substantive to add, return an empty array: []`;
 

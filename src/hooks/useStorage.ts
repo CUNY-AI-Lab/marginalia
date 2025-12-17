@@ -22,11 +22,13 @@ import {
   addResponseToExchange as addResponseToExchangeStorage,
   getSourceHistoryForParagraph as getSourceHistoryForParagraphStorage,
   clearParagraphConversation as clearParagraphConversationStorage,
-  // Legacy
-  getSources,
-  saveSources,
-  getDocuments,
-  saveDocuments,
+  // Scan engagements
+  getScanEngagements as getScanEngagementsStorage,
+  saveScanEngagements as saveScanEngagementsStorage,
+  updateScanEngagement as updateScanEngagementStorage,
+  clearScanEngagements as clearScanEngagementsStorage,
+  ScanEngagementsData,
+  EngagementEntry,
 } from '@/lib/storage';
 import {
   Paper,
@@ -37,10 +39,6 @@ import {
   ParagraphConversation,
   Exchange,
   StructuredParagraph,
-  // Legacy
-  Source,
-  Document,
-  SOURCE_COLORS,
 } from '@/lib/types';
 
 // ============ Papers Hook ============
@@ -406,99 +404,145 @@ export function useParagraphConversations(workspaceId: string | null, activePape
   };
 }
 
-// ============ Legacy Hooks (for backwards compatibility) ============
+// ============ Scan Engagements Hook (Persistent Heatmap) ============
 
-export function useSources() {
-  const [sources, setSources] = useState<Source[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useScanEngagements(workspaceId: string | null, activePaperId: string | null) {
+  const [engagements, setEngagements] = useState<Map<number, EngagementEntry[]>>(new Map());
 
+  // Load engagements when workspace/paper changes
   useEffect(() => {
-    setSources(getSources());
-    setLoading(false);
-  }, []);
+    if (workspaceId && activePaperId) {
+      const stored = getScanEngagementsStorage(workspaceId, activePaperId);
+      // Convert Record to Map, handling backwards compatibility with old string[] format
+      const map = new Map<number, EngagementEntry[]>();
+      Object.entries(stored).forEach(([key, value]) => {
+        // Handle old format: string[] -> EngagementEntry[]
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+          const migrated = (value as unknown as string[]).map(sourceId => ({
+            sourceId,
+            type: 'contextualizes' as const,
+            angle: 'has relevant perspective',
+          }));
+          map.set(Number(key), migrated);
+        } else {
+          map.set(Number(key), value as EngagementEntry[]);
+        }
+      });
+      setEngagements(map);
+    } else {
+      setEngagements(new Map());
+    }
+  }, [workspaceId, activePaperId]);
 
-  const addSource = useCallback((source: Omit<Source, 'id' | 'createdAt' | 'color'>) => {
-    const currentSources = getSources();
-    const newSource: Source = {
-      ...source,
-      id: generateId(),
-      color: SOURCE_COLORS[currentSources.length % SOURCE_COLORS.length],
-      createdAt: Date.now(),
-    };
-    const updated = [...currentSources, newSource];
-    saveSources(updated);
-    setSources(updated);
-    return newSource;
-  }, []);
+  // Update a single paragraph's engagement
+  const updateEngagement = useCallback(
+    (paragraphIndex: number, entries: EngagementEntry[]) => {
+      if (!workspaceId || !activePaperId) return;
 
-  const updateSource = useCallback((id: string, updates: Partial<Source>) => {
-    const currentSources = getSources();
-    const updated = currentSources.map(s => (s.id === id ? { ...s, ...updates } : s));
-    saveSources(updated);
-    setSources(updated);
-  }, []);
+      // Update storage
+      updateScanEngagementStorage(workspaceId, activePaperId, paragraphIndex, entries);
 
-  const deleteSource = useCallback((id: string) => {
-    const currentSources = getSources();
-    const updated = currentSources.filter(s => s.id !== id);
-    saveSources(updated);
-    setSources(updated);
-  }, []);
+      // Update local state
+      setEngagements(prev => {
+        const next = new Map(prev);
+        next.set(paragraphIndex, entries);
+        return next;
+      });
+    },
+    [workspaceId, activePaperId]
+  );
 
+  // Batch update multiple engagements (for scan completion)
+  const setAllEngagements = useCallback(
+    (newEngagements: Map<number, EngagementEntry[]>) => {
+      if (!workspaceId || !activePaperId) return;
+
+      // Convert Map to Record for storage
+      const record: ScanEngagementsData = {};
+      newEngagements.forEach((value, key) => {
+        record[key] = value;
+      });
+
+      saveScanEngagementsStorage(workspaceId, activePaperId, record);
+      setEngagements(newEngagements);
+    },
+    [workspaceId, activePaperId]
+  );
+
+  // Clear engagement for a specific paragraph
+  const clearEngagement = useCallback(
+    (paragraphIndex: number) => {
+      if (!workspaceId || !activePaperId) return;
+
+      const stored = getScanEngagementsStorage(workspaceId, activePaperId);
+      delete stored[paragraphIndex];
+      saveScanEngagementsStorage(workspaceId, activePaperId, stored);
+
+      setEngagements(prev => {
+        const next = new Map(prev);
+        next.delete(paragraphIndex);
+        return next;
+      });
+    },
+    [workspaceId, activePaperId]
+  );
+
+  // Clear all engagements
+  const clearAllEngagements = useCallback(() => {
+    if (!workspaceId || !activePaperId) return;
+    clearScanEngagementsStorage(workspaceId, activePaperId);
+    setEngagements(new Map());
+  }, [workspaceId, activePaperId]);
+
+  // Refresh from storage
   const refresh = useCallback(() => {
-    setSources(getSources());
-  }, []);
+    if (workspaceId && activePaperId) {
+      const stored = getScanEngagementsStorage(workspaceId, activePaperId);
+      const map = new Map<number, EngagementEntry[]>();
+      Object.entries(stored).forEach(([key, value]) => {
+        // Handle old format: string[] -> EngagementEntry[]
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+          const migrated = (value as unknown as string[]).map(sourceId => ({
+            sourceId,
+            type: 'contextualizes' as const,
+            angle: 'has relevant perspective',
+          }));
+          map.set(Number(key), migrated);
+        } else {
+          map.set(Number(key), value as EngagementEntry[]);
+        }
+      });
+      setEngagements(map);
+    }
+  }, [workspaceId, activePaperId]);
 
-  return { sources, loading, addSource, updateSource, deleteSource, refresh };
+  // Helper to get just source IDs (for backwards compatibility)
+  const getEngagedSourceIds = useCallback(
+    (paragraphIndex: number): string[] => {
+      const entries = engagements.get(paragraphIndex) || [];
+      return entries.map(e => e.sourceId);
+    },
+    [engagements]
+  );
+
+  // Helper to get engagement info for a specific source
+  const getEngagementForSource = useCallback(
+    (paragraphIndex: number, sourceId: string): EngagementEntry | undefined => {
+      const entries = engagements.get(paragraphIndex) || [];
+      return entries.find(e => e.sourceId === sourceId);
+    },
+    [engagements]
+  );
+
+  return {
+    engagements,
+    updateEngagement,
+    setAllEngagements,
+    clearEngagement,
+    clearAllEngagements,
+    refresh,
+    getEngagedSourceIds,
+    getEngagementForSource,
+  };
 }
 
-export function useDocuments() {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setDocuments(getDocuments());
-    setLoading(false);
-  }, []);
-
-  const addDocument = useCallback((doc: Omit<Document, 'id' | 'createdAt' | 'paragraphs'>) => {
-    const currentDocs = getDocuments();
-    const newDoc: Document = {
-      ...doc,
-      id: generateId(),
-      paragraphs: segmentIntoParagraphs(doc.content),
-      createdAt: Date.now(),
-    };
-    const updated = [...currentDocs, newDoc];
-    saveDocuments(updated);
-    setDocuments(updated);
-    return newDoc;
-  }, []);
-
-  const updateDocument = useCallback((id: string, updates: Partial<Document>) => {
-    const currentDocs = getDocuments();
-    const updated = currentDocs.map(d => {
-      if (d.id !== id) return d;
-      const newDoc = { ...d, ...updates };
-      if (updates.content) {
-        newDoc.paragraphs = segmentIntoParagraphs(updates.content);
-      }
-      return newDoc;
-    });
-    saveDocuments(updated);
-    setDocuments(updated);
-  }, []);
-
-  const deleteDocument = useCallback((id: string) => {
-    const currentDocs = getDocuments();
-    const updated = currentDocs.filter(d => d.id !== id);
-    saveDocuments(updated);
-    setDocuments(updated);
-  }, []);
-
-  const refresh = useCallback(() => {
-    setDocuments(getDocuments());
-  }, []);
-
-  return { documents, loading, addDocument, updateDocument, deleteDocument, refresh };
-}

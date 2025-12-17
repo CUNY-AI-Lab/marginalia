@@ -52,8 +52,11 @@ describe('buildAgentSystemPrompt', () => {
     id: 'test-1',
     title: 'Test Book',
     author: 'Test Author',
+    type: 'book',
     fullText: 'Full text content',
+    identityLayer: null,
     color: '#ff0000',
+    createdAt: Date.now(),
   };
 
   const mockSourceWithIdentity: Source = {

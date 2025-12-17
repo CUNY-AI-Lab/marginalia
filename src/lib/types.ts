@@ -3,6 +3,21 @@
 // Paragraph structure types for typography hierarchy
 export type ParagraphType = 'h1' | 'h2' | 'h3' | 'body';
 
+// Engagement types for how a source relates to a passage
+export type EngagementType =
+  | 'affirms'        // Agrees with and supports
+  | 'extends'        // Builds on, adds to
+  | 'challenges'     // Disagrees, pushes back
+  | 'complicates'    // Yes-but, adds caveats
+  | 'evidence'       // Provides supporting case/data
+  | 'reframes'       // Would ask a different question
+  | 'contextualizes'; // Adds historical/theoretical context
+
+export interface EngagementInfo {
+  type: EngagementType;
+  angle: string; // Brief description of the specific angle
+}
+
 export interface StructuredParagraph {
   type: ParagraphType;
   content: string;

@@ -1,4 +1,4 @@
-import { Paper, Workspace, Conversation, WorkspaceDeleteBehavior, Source, Document, LegacyConversation, ParagraphConversation, Exchange, SourceResponse, StructuredParagraph } from './types';
+import { Paper, Workspace, Conversation, WorkspaceDeleteBehavior, Source, Document, LegacyConversation, ParagraphConversation, Exchange, SourceResponse, StructuredParagraph, EngagementType } from './types';
 
 // Storage keys
 export const STORAGE_KEYS = {
@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
     `marginalia:conversations:${workspaceId}:${activePaperId}`,
   PARAGRAPH_CONVERSATIONS: (workspaceId: string, activePaperId: string) =>
     `marginalia:paragraphConversations:${workspaceId}:${activePaperId}`,
+  SCAN_ENGAGEMENTS: (workspaceId: string, activePaperId: string) =>
+    `marginalia:scanEngagements:${workspaceId}:${activePaperId}`,
   // Legacy keys for migration
   LEGACY_SOURCES: 'marginalia:sources',
   LEGACY_DOCUMENTS: 'marginalia:documents',
@@ -29,7 +31,17 @@ function getItem<T>(key: string, defaultValue: T): T {
 
 function setItem<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    // Handle QuotaExceededError
+    if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+      console.error('localStorage quota exceeded. Consider clearing old data.');
+      // Optionally, we could try to clear some old data here
+    } else {
+      throw error; // Re-throw unexpected errors
+    }
+  }
 }
 
 // removeItem is used implicitly via localStorage.removeItem in cleanupWorkspaceConversations
@@ -205,8 +217,9 @@ function cleanupWorkspaceConversations(workspaceId: string): void {
   if (typeof window === 'undefined') return;
   const prefix = `marginalia:conversations:${workspaceId}:`;
   const paragraphPrefix = `marginalia:paragraphConversations:${workspaceId}:`;
+  const scanPrefix = `marginalia:scanEngagements:${workspaceId}:`;
   Object.keys(localStorage)
-    .filter(key => key.startsWith(prefix) || key.startsWith(paragraphPrefix))
+    .filter(key => key.startsWith(prefix) || key.startsWith(paragraphPrefix) || key.startsWith(scanPrefix))
     .forEach(key => localStorage.removeItem(key));
 }
 
@@ -336,6 +349,55 @@ export function clearParagraphConversation(
   const conversations = getParagraphConversations(workspaceId, activePaperId);
   const filtered = conversations.filter(c => c.paragraphIndex !== paragraphIndex);
   saveParagraphConversations(workspaceId, activePaperId, filtered);
+}
+
+// ============ Scan Engagements (Persistent Heatmap Data) ============
+
+// Engagement entry with type and angle
+export interface EngagementEntry {
+  sourceId: string;
+  type: EngagementType;
+  angle: string;
+}
+
+// Type for storing scan results: Map<paragraphIndex, engagement entries>
+export type ScanEngagementsData = Record<number, EngagementEntry[]>;
+
+export function getScanEngagements(
+  workspaceId: string,
+  activePaperId: string
+): ScanEngagementsData {
+  return getItem<ScanEngagementsData>(
+    STORAGE_KEYS.SCAN_ENGAGEMENTS(workspaceId, activePaperId),
+    {}
+  );
+}
+
+export function saveScanEngagements(
+  workspaceId: string,
+  activePaperId: string,
+  engagements: ScanEngagementsData
+): void {
+  setItem(STORAGE_KEYS.SCAN_ENGAGEMENTS(workspaceId, activePaperId), engagements);
+}
+
+export function updateScanEngagement(
+  workspaceId: string,
+  activePaperId: string,
+  paragraphIndex: number,
+  entries: EngagementEntry[]
+): void {
+  const engagements = getScanEngagements(workspaceId, activePaperId);
+  engagements[paragraphIndex] = entries;
+  saveScanEngagements(workspaceId, activePaperId, engagements);
+}
+
+export function clearScanEngagements(
+  workspaceId: string,
+  activePaperId: string
+): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.SCAN_ENGAGEMENTS(workspaceId, activePaperId));
 }
 
 // ============ Workspace Deletion with Paper Handling ============

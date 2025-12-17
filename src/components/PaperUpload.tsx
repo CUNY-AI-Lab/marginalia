@@ -2,14 +2,18 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Paper, StructuredParagraph } from '@/lib/types';
+import { PDF_PROCESSING_TEXT, PDF_FAILED_TEXT } from '@/lib/constants';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - must match server limit
 
 interface PaperUploadProps {
   onAdd: (paper: Omit<Paper, 'id' | 'createdAt' | 'updatedAt' | 'color' | 'paragraphs'> & { paragraphs?: StructuredParagraph[] }) => Paper;
+  onUpdate: (id: string, updates: Partial<Paper>, title?: string) => void;
 }
 
 type UploadStatus = 'idle' | 'reading' | 'processing' | 'done';
 
-export default function PaperUpload({ onAdd }: PaperUploadProps) {
+export default function PaperUpload({ onAdd, onUpdate }: PaperUploadProps) {
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [pastedText, setPastedText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,58 +30,90 @@ export default function PaperUpload({ onAdd }: PaperUploadProps) {
       setUploadStatus('reading');
       setError(null);
 
-      try {
-        let text: string;
+      // Client-side file size validation
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+        setUploadStatus('idle');
+        setUploadFileName('');
+        return;
+      }
 
+      try {
         const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        let structuredParagraphs: StructuredParagraph[] | undefined;
+        const title = file.name.replace(/\.(pdf|txt|md)$/i, '');
 
         if (isPDF) {
-          setUploadStatus('processing');
+          // Add paper immediately with placeholder - non-blocking
+          const paper = onAdd({
+            title,
+            author: 'Extracting...',
+            type: 'article',
+            fullText: PDF_PROCESSING_TEXT,
+            identityLayer: null,
+            status: 'processing',
+          });
+
+          // Reset UI immediately so user can upload more
+          setUploadStatus('idle');
+          setUploadFileName('');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+
+          // Fire PDF parsing in background (don't await at top level)
           const formData = new FormData();
           formData.append('file', file);
 
-          const res = await fetch('/api/parse-pdf', {
+          fetch('/api/parse-pdf', {
             method: 'POST',
             body: formData,
+          })
+            .then(async (res) => {
+              if (!res.ok) throw new Error('Failed to parse PDF');
+              const data = await res.json();
+              // Update paper with real text when done, pass title for extraction
+              onUpdate(paper.id, {
+                fullText: data.text,
+                paragraphs: data.paragraphs,
+              }, title);
+            })
+            .catch((err) => {
+              console.error('PDF parsing failed:', err);
+              // Mark as failed if PDF parsing fails
+              onUpdate(paper.id, {
+                status: 'error',
+                fullText: PDF_FAILED_TEXT,
+                author: 'Upload failed',
+              });
+            });
+        } else {
+          // Text files are fast - process synchronously
+          const text = await file.text();
+
+          onAdd({
+            title,
+            author: 'Extracting...',
+            type: 'article',
+            fullText: text,
+            identityLayer: null,
+            status: 'processing',
           });
 
-          if (!res.ok) throw new Error('Failed to parse PDF');
-          const data = await res.json();
-          text = data.text;
-          structuredParagraphs = data.paragraphs;
-        } else {
-          text = await file.text();
-        }
-
-        // Extract title from filename (remove extension)
-        const title = file.name.replace(/\.(pdf|txt|md)$/i, '');
-
-        // Add paper immediately with processing status
-        // The parent will handle async LLM extraction
-        onAdd({
-          title,
-          author: 'Extracting...',
-          type: 'article',
-          fullText: text,
-          identityLayer: null,
-          status: 'processing',
-          paragraphs: structuredParagraphs,
-        });
-
-        // Reset for next upload
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+          // Reset for next upload
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          setUploadStatus('idle');
+          setUploadFileName('');
         }
       } catch (err) {
         setError('Failed to read file. Please try again.');
         console.error(err);
-      } finally {
         setUploadStatus('idle');
         setUploadFileName('');
       }
     },
-    [onAdd]
+    [onAdd, onUpdate]
   );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

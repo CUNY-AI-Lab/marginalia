@@ -4,6 +4,8 @@
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Serif font for reading content */

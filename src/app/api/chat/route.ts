@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
-import { Source } from '@/lib/types';
+import { Source, EngagementInfo } from '@/lib/types';
 import { buildAgentSystemPrompt, buildAgentUserPrompt, PromptMode, ConversationHistoryEntry } from '@/lib/prompts';
 import { isWithinTokenLimit, streamContent } from '@/lib/llm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { passage, question, sources, sourceId, mode = 'brief', context, conversationHistory } = await request.json() as {
+    const { passage, question, sources, sourceId, mode = 'brief', context, conversationHistory, engagement } = await request.json() as {
       passage: string;
       question?: string;
       sources: Source[];
@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       mode?: PromptMode;
       context?: string; // Optional: previous comment being responded to (legacy)
       conversationHistory?: ConversationHistoryEntry[]; // Previous exchanges with this source
+      engagement?: EngagementInfo; // Optional: how this source should engage
     };
 
     // If sourceId provided, filter to just that source
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
               sourceId: source.id
             })}\n\n`);
 
-            const systemPrompt = buildAgentSystemPrompt(source, mode);
+            const systemPrompt = buildAgentSystemPrompt(source, mode, engagement);
 
             // Include full text if within token limit, otherwise just identity layer
             const includeFullText = isWithinTokenLimit(source.fullText);

@@ -6,6 +6,7 @@ import PaperUpload from '@/components/PaperUpload';
 import MigrationBanner from '@/components/MigrationBanner';
 import Link from 'next/link';
 import { Paper, Workspace } from '@/lib/types';
+import { PDF_PROCESSING_TEXT, PDF_FAILED_TEXT } from '@/lib/constants';
 
 export default function LibraryPage() {
   const { papers, loading, addPaper, updatePaper, deletePaper } = usePapers();
@@ -15,15 +16,20 @@ export default function LibraryPage() {
 
   // Warn before page refresh if extraction in progress
   useEffect(() => {
+    const currentRef = extractingPapersRef.current;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (extractingPapersRef.current.size > 0) {
+      if (currentRef.size > 0) {
         e.preventDefault();
         return '';
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Cleanup tracking set on unmount to prevent memory leaks
+      currentRef.clear();
+    };
   }, []);
   const {
     workspaces,
@@ -119,8 +125,9 @@ export default function LibraryPage() {
     (paperData: Omit<Paper, 'id' | 'createdAt' | 'updatedAt' | 'color' | 'paragraphs'>) => {
       const newPaper = addPaper(paperData);
 
-      // If paper was added with processing status, start async extraction
-      if (newPaper.status === 'processing') {
+      // If paper was added with processing status and has real text, start async extraction
+      // Skip if it's a PDF placeholder waiting for parsing
+      if (newPaper.status === 'processing' && newPaper.fullText !== PDF_PROCESSING_TEXT) {
         // Fire and forget - don't await
         extractMetadataAsync(newPaper.id, newPaper.fullText, newPaper.title);
       }
@@ -128,6 +135,36 @@ export default function LibraryPage() {
       return newPaper;
     },
     [addPaper, extractMetadataAsync]
+  );
+
+  // Handle paper updates from async processes (like PDF parsing)
+  const handleUpdatePaper = useCallback(
+    (id: string, updates: Partial<Paper>, title?: string) => {
+      updatePaper(id, updates);
+
+      // If PDF parsing just completed (fullText was updated), trigger identity extraction
+      // Title is passed from PaperUpload to avoid stale closure issues
+      if (updates.fullText && updates.fullText !== PDF_PROCESSING_TEXT && updates.fullText !== PDF_FAILED_TEXT && title) {
+        extractMetadataAsync(id, updates.fullText, title);
+      }
+    },
+    [updatePaper, extractMetadataAsync]
+  );
+
+  // Retry extraction for failed papers
+  const handleRetryExtraction = useCallback(
+    (paper: Paper) => {
+      // Only retry if the paper has actual text (not a failed PDF parse)
+      if (paper.fullText === PDF_FAILED_TEXT) {
+        // Can't retry - need to re-upload
+        return;
+      }
+      // Reset status to processing
+      updatePaper(paper.id, { status: 'processing', author: 'Extracting...' });
+      // Re-run extraction
+      extractMetadataAsync(paper.id, paper.fullText, paper.title);
+    },
+    [updatePaper, extractMetadataAsync]
   );
 
   // Sort papers: active workspace papers first, then by creation date
@@ -138,9 +175,27 @@ export default function LibraryPage() {
     return b.createdAt - a.createdAt;
   });
 
+  // Count processing papers for warning banner
+  const processingCount = papers.filter(p => p.status === 'processing').length;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <MigrationBanner />
+
+      {/* Processing warning banner */}
+      {processingCount > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <div className="max-w-5xl mx-auto flex items-center gap-3">
+            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className="text-sm text-yellow-800 dark:text-yellow-200">
+              <strong>{processingCount} {processingCount === 1 ? 'paper' : 'papers'}</strong> processing &mdash; don&apos;t refresh or you&apos;ll lose progress
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
@@ -179,7 +234,7 @@ export default function LibraryPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New Paper</h2>
-            <PaperUpload onAdd={handleAddPaper} />
+            <PaperUpload onAdd={handleAddPaper} onUpdate={handleUpdatePaper} />
           </div>
 
           <div>
@@ -188,8 +243,15 @@ export default function LibraryPage() {
               <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
             ) : papers.length === 0 ? (
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-8 bg-white dark:bg-gray-800 text-center">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  No papers yet. Add a book, article, or chapter to get started.
+                <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">
+                  Your library is empty
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                  Upload PDFs, text files, or paste content. Each paper can serve as either
+                  your reading target or a commentator that responds to passages.
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs">
+                  Tip: Add 2-3 papers on related topics to see them in dialogue.
                 </p>
               </div>
             ) : (
@@ -236,9 +298,19 @@ export default function LibraryPage() {
                                 Analyzing...
                               </span>
                             ) : hasError ? (
-                              <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded">
-                                Error
-                              </span>
+                              <>
+                                <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded">
+                                  Error
+                                </span>
+                                {paper.fullText !== PDF_FAILED_TEXT && (
+                                  <button
+                                    onClick={() => handleRetryExtraction(paper)}
+                                    className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                                  >
+                                    Retry
+                                  </button>
+                                )}
+                              </>
                             ) : paper.identityLayer ? (
                               <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded">
                                 Identity extracted

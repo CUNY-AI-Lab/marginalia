@@ -35,7 +35,8 @@ ${text}`;
       identityLayer: result.identityLayer,
       metadata: result.metadata,
     });
-  } catch {
+  } catch (error) {
+    console.error('Identity extraction failed:', error);
     return NextResponse.json(
       { error: 'Failed to extract identity' },
       { status: 500 }

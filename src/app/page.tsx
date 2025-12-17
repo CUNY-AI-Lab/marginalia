@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useActiveWorkspaceContext, usePapers, useParagraphConversations } from '@/hooks/useStorage';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useActiveWorkspaceContext, useParagraphConversations, useScanEngagements } from '@/hooks/useStorage';
 import ReadingPane from '@/components/ReadingPane';
 import ConversationPanel from '@/components/ConversationPanel';
 import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import MigrationBanner from '@/components/MigrationBanner';
+import ShareWorkspaceDialog from '@/components/ShareWorkspaceDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 
@@ -31,8 +32,6 @@ export default function Home() {
     setActivePaper,
   } = useActiveWorkspaceContext();
 
-  const { deletePaper } = usePapers();
-
   // Paragraph conversations persistence
   const {
     conversations: savedConversations,
@@ -43,6 +42,15 @@ export default function Home() {
     clearConversation,
   } = useParagraphConversations(activeWorkspaceId, activePaper?.id || null);
 
+  // Persistent scan engagements (heatmap data)
+  const {
+    engagements,
+    updateEngagement,
+    clearEngagement,
+    getEngagedSourceIds,
+    getEngagementForSource,
+  } = useScanEngagements(activeWorkspaceId, activePaper?.id || null);
+
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const [responses, setResponses] = useState<AgentResponseState[]>([]);
   const [loadingSourceId, setLoadingSourceId] = useState<string | null>(null);
@@ -50,66 +58,132 @@ export default function Home() {
   const [askingSource, setAskingSource] = useState<string | null>(null);
   const [currentExchangeId, setCurrentExchangeId] = useState<string | null>(null);
 
-  // Engagement tracking: which papers have something to say per paragraph
-  const [engagements, setEngagements] = useState<Map<number, string[]>>(new Map());
+  // Engagement loading state (non-persistent)
   const [loadingEngagement, setLoadingEngagement] = useState<number | null>(null);
+  const [scanningDocument, setScanningDocument] = useState(false);
+  const [scanProgress, setScanProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Share dialog state
+  const [showShareDialog, setShowShareDialog] = useState(false);
+
+  // Panel resize state
+  const [panelWidth, setPanelWidth] = useState(40); // Default 40%
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const panelWidthRef = useRef(panelWidth); // Track current width for event handlers
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    panelWidthRef.current = panelWidth;
+  }, [panelWidth]);
+
+  // Load saved panel width from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('marginalia:panelWidth');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 20 && parsed <= 60) {
+        setPanelWidth(parsed);
+      }
+    }
+  }, []);
 
   const selectedParagraph =
-    activePaper && selectedParagraphIndex !== null
+    activePaper &&
+    selectedParagraphIndex !== null &&
+    selectedParagraphIndex >= 0 &&
+    selectedParagraphIndex < activePaper.paragraphs.length
       ? activePaper.paragraphs[selectedParagraphIndex].content
       : null;
 
   // Get engaged paper IDs for current paragraph (memoized for stable reference)
   const currentEngagedPaperIds = useMemo(
-    () => (selectedParagraphIndex !== null ? engagements.get(selectedParagraphIndex) || [] : []),
-    [selectedParagraphIndex, engagements]
+    () => (selectedParagraphIndex !== null ? getEngagedSourceIds(selectedParagraphIndex) : []),
+    [selectedParagraphIndex, getEngagedSourceIds]
   );
 
   // Reset state when active paper changes
   useEffect(() => {
     setSelectedParagraphIndex(null);
     setResponses([]);
-    setEngagements(new Map());
     setAskingSource(null);
+    setScanningDocument(false);
+    setScanProgress(null);
+    // Note: engagements are loaded automatically by useScanEngagements hook
   }, [activePaper?.id]);
 
-  // Initialize engagements from saved conversations (so pips persist after refresh)
+  // Merge conversation sources into engagements (so sources that have responded show pips)
+  // Note: We intentionally exclude `engagements` from deps to avoid re-running on every engagement change.
+  // This effect only needs to run when savedConversations changes.
   useEffect(() => {
     if (savedConversations.length > 0) {
-      const newEngagements = new Map<number, string[]>();
       for (const conv of savedConversations) {
         // Collect unique source IDs that have responded to this paragraph
-        const sourceIds: string[] = [];
+        const conversationSourceIds: string[] = [];
         for (const exchange of conv.exchanges) {
           for (const resp of exchange.responses) {
-            if (!sourceIds.includes(resp.sourceId)) {
-              sourceIds.push(resp.sourceId);
+            if (!conversationSourceIds.includes(resp.sourceId)) {
+              conversationSourceIds.push(resp.sourceId);
             }
           }
         }
-        if (sourceIds.length > 0) {
-          // Merge with existing engagements (from prefilter) rather than replacing
-          const existing = newEngagements.get(conv.paragraphIndex) || [];
-          const merged = [...existing, ...sourceIds].filter(
-            (id, idx, arr) => arr.indexOf(id) === idx
-          );
-          newEngagements.set(conv.paragraphIndex, merged);
+        if (conversationSourceIds.length > 0) {
+          // Merge with existing engagements from scan
+          const existing = engagements.get(conv.paragraphIndex) || [];
+          const existingSourceIds = existing.map(e => e.sourceId);
+
+          // Find source IDs that need to be added
+          const newSourceIds = conversationSourceIds.filter(id => !existingSourceIds.includes(id));
+
+          // Only update if there are new sources to add
+          if (newSourceIds.length > 0) {
+            // Create default engagement entries for sources that responded but weren't in prefilter
+            const newEntries = newSourceIds.map(id => ({
+              sourceId: id,
+              type: 'contextualizes' as const, // Default type for sources that responded directly
+              angle: 'responded to this passage',
+            }));
+            updateEngagement(conv.paragraphIndex, [...existing, ...newEntries]);
+          }
         }
       }
-      setEngagements(prev => {
-        // Merge saved conversation sources with any prefilter results
-        const merged = new Map(prev);
-        Array.from(newEngagements.entries()).forEach(([idx, sourceIds]) => {
-          const existing = merged.get(idx) || [];
-          const combined = [...existing, ...sourceIds].filter(
-            (id, i, arr) => arr.indexOf(id) === i
-          );
-          merged.set(idx, combined);
-        });
-        return merged;
-      });
     }
-  }, [savedConversations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedConversations, updateEngagement]);
+
+  // Handle panel resize
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
+      // Clamp between 20% and 60%
+      const clampedWidth = Math.min(60, Math.max(20, newWidth));
+      setPanelWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      // Save current width from ref (avoids stale closure)
+      localStorage.setItem('marginalia:panelWidth', Math.round(panelWidthRef.current).toString());
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Prevent text selection while dragging
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing]);
 
   // Fetch prefilter to see which papers would engage
   const fetchEngagement = useCallback(
@@ -134,29 +208,100 @@ export default function Home() {
         if (!res.ok) throw new Error('Failed to fetch engagement');
 
         const data = await res.json();
-        setEngagements(prev => {
-          const next = new Map(prev);
-          next.set(paragraphIndex, data.engagedSourceIds || []);
-          return next;
-        });
+        // Use full engagements if available, fallback to engagedSourceIds for backwards compatibility
+        const entries = data.engagements || data.engagedSourceIds?.map((id: string) => ({
+          sourceId: id,
+          type: 'contextualizes',
+          angle: 'has relevant perspective',
+        })) || [];
+        updateEngagement(paragraphIndex, entries);
       } catch (error) {
         console.error('Error fetching engagement:', error);
       } finally {
         setLoadingEngagement(null);
       }
     },
-    [commentingPapers, engagements]
+    [commentingPapers, engagements, updateEngagement]
   );
 
-  // Generate response for a single paper
-  const generateSingleResponse = useCallback(
-    async (paperId: string, replyToContent?: string, question?: string, exchangeId?: string) => {
-      if (!selectedParagraph || !activePaper || selectedParagraphIndex === null) return;
+  // Scan entire document for engagements (heatmap)
+  const scanDocumentEngagements = useCallback(async () => {
+    if (!activePaper || commentingPapers.length === 0 || scanningDocument) return;
 
+    setScanningDocument(true);
+    const paragraphs = activePaper.paragraphs;
+    const total = paragraphs.length;
+    setScanProgress({ current: 0, total });
+
+    // Process in batches to avoid overwhelming the server
+    const batchSize = 3;
+    for (let i = 0; i < paragraphs.length; i += batchSize) {
+      const batch = paragraphs.slice(i, Math.min(i + batchSize, paragraphs.length));
+
+      // Process batch in parallel
+      await Promise.all(
+        batch.map(async (para, batchIdx) => {
+          const paragraphIndex = i + batchIdx;
+          // Skip headers - they're structural, not content worth commenting on
+          if (para.type === 'h1' || para.type === 'h2' || para.type === 'h3') return;
+          // Skip if we already have engagement data
+          if (engagements.has(paragraphIndex)) return;
+
+          try {
+            const res = await fetch('/api/prefilter', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                passage: para.content,
+                sources: commentingPapers,
+              }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              // Use full engagements if available, fallback to engagedSourceIds
+              const entries = data.engagements || data.engagedSourceIds?.map((id: string) => ({
+                sourceId: id,
+                type: 'contextualizes',
+                angle: 'has relevant perspective',
+              })) || [];
+              updateEngagement(paragraphIndex, entries);
+            }
+          } catch (error) {
+            console.error(`Error scanning paragraph ${paragraphIndex}:`, error);
+          }
+        })
+      );
+
+      setScanProgress({ current: Math.min(i + batchSize, total), total });
+    }
+
+    setScanningDocument(false);
+    setScanProgress(null);
+  }, [activePaper, commentingPapers, engagements, scanningDocument, updateEngagement]);
+
+  // Generate response for a single paper
+  // Note: paragraphIndex and passage are passed explicitly to avoid stale closure bugs
+  const generateSingleResponse = useCallback(
+    async (
+      paperId: string,
+      paragraphIndex: number,
+      passage: string,
+      replyToContent?: string,
+      question?: string,
+      exchangeId?: string
+    ) => {
       setLoadingSourceId(paperId);
 
       // Get conversation history for this source on this paragraph
-      const conversationHistory = getSourceHistory(selectedParagraphIndex, paperId);
+      const conversationHistory = getSourceHistory(paragraphIndex, paperId);
+
+      // Get engagement info for this source (type and angle)
+      const engagementEntry = getEngagementForSource(paragraphIndex, paperId);
+      const engagement = engagementEntry ? {
+        type: engagementEntry.type,
+        angle: engagementEntry.angle,
+      } : undefined;
 
       // Add placeholder for this paper's response
       setResponses(prev => [
@@ -165,25 +310,27 @@ export default function Home() {
       ]);
 
       let finalContent = '';
+      let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            passage: selectedParagraph,
+            passage: passage,
             sources: commentingPapers, // API still expects 'sources' field
             sourceId: paperId,
             mode: 'brief',
             context: replyToContent,
             question: question,
             conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
+            engagement: engagement,
           }),
         });
 
         if (!res.ok) throw new Error('Failed to fetch response');
 
-        const reader = res.body?.getReader();
+        reader = res.body?.getReader();
         if (!reader) throw new Error('No response body');
 
         const decoder = new TextDecoder();
@@ -215,9 +362,9 @@ export default function Home() {
                       r.sourceId === data.sourceId && !r.done ? { ...r, done: true } : r
                     )
                   );
-                  // Save to storage when done
+                  // Save to storage when done - uses captured paragraphIndex, not closure
                   if (exchangeId && finalContent) {
-                    addResponseToStorage(selectedParagraphIndex, exchangeId, paperId, finalContent);
+                    addResponseToStorage(paragraphIndex, exchangeId, paperId, finalContent);
                   }
                 } else if (data.type === 'error') {
                   setResponses(prev =>
@@ -244,10 +391,42 @@ export default function Home() {
           )
         );
       } finally {
+        // Always release the reader to prevent memory leaks
+        if (reader) {
+          try {
+            reader.releaseLock();
+          } catch {
+            // Reader may already be released
+          }
+        }
         setLoadingSourceId(null);
       }
     },
-    [selectedParagraph, selectedParagraphIndex, activePaper, commentingPapers, getSourceHistory, addResponseToStorage]
+    [commentingPapers, getSourceHistory, addResponseToStorage, getEngagementForSource]
+  );
+
+  // Helper to load existing conversation responses into UI state
+  const loadConversationResponses = useCallback(
+    (index: number) => {
+      const existingConversation = getConversationForParagraph(index);
+      if (existingConversation && existingConversation.exchanges.length > 0) {
+        const loadedResponses: AgentResponseState[] = [];
+        for (const exchange of existingConversation.exchanges) {
+          for (const resp of exchange.responses) {
+            loadedResponses.push({
+              sourceId: resp.sourceId,
+              content: resp.content,
+              done: true,
+              question: exchange.question,
+            });
+          }
+        }
+        setResponses(loadedResponses);
+      } else {
+        setResponses([]);
+      }
+    },
+    [getConversationForParagraph]
   );
 
   const handleSelectParagraph = useCallback(
@@ -256,32 +435,17 @@ export default function Home() {
       setPanelOpen(true);
       setCurrentExchangeId(null);
 
-      // Load existing conversation from storage
-      const existingConversation = getConversationForParagraph(index);
-      if (existingConversation && existingConversation.exchanges.length > 0) {
-        // Convert stored exchanges to UI responses format
-        const loadedResponses: AgentResponseState[] = [];
-        for (const exchange of existingConversation.exchanges) {
-          for (const resp of exchange.responses) {
-            loadedResponses.push({
-              sourceId: resp.sourceId,
-              content: resp.content,
-              done: true,
-              question: exchange.question,
-            });
-          }
-        }
-        setResponses(loadedResponses);
-      } else {
-        setResponses([]);
-      }
+      loadConversationResponses(index);
 
       if (activePaper) {
-        const passage = activePaper.paragraphs[index].content;
-        fetchEngagement(index, passage);
+        const para = activePaper.paragraphs[index];
+        // Skip engagement check for headers - they're structural, not content
+        if (para.type !== 'h1' && para.type !== 'h2' && para.type !== 'h3') {
+          fetchEngagement(index, para.content);
+        }
       }
     },
-    [activePaper, fetchEngagement, getConversationForParagraph]
+    [activePaper, fetchEngagement, loadConversationResponses]
   );
 
   const handleClickSourceFlag = useCallback(
@@ -289,40 +453,29 @@ export default function Home() {
       setSelectedParagraphIndex(paragraphIndex);
       setPanelOpen(true);
 
-      // Load existing conversation from storage
-      const existingConversation = getConversationForParagraph(paragraphIndex);
-      if (existingConversation && existingConversation.exchanges.length > 0) {
-        const loadedResponses: AgentResponseState[] = [];
-        for (const exchange of existingConversation.exchanges) {
-          for (const resp of exchange.responses) {
-            loadedResponses.push({
-              sourceId: resp.sourceId,
-              content: resp.content,
-              done: true,
-              question: exchange.question,
-            });
-          }
-        }
-        setResponses(loadedResponses);
-      } else {
-        setResponses([]);
-      }
+      loadConversationResponses(paragraphIndex);
 
       if (activePaper) {
-        const passage = activePaper.paragraphs[paragraphIndex].content;
-        fetchEngagement(paragraphIndex, passage);
+        const para = activePaper.paragraphs[paragraphIndex];
+        // Skip engagement check for headers
+        if (para.type !== 'h1' && para.type !== 'h2' && para.type !== 'h3') {
+          fetchEngagement(paragraphIndex, para.content);
 
-        // Create a new exchange for this response
-        const exchange = startExchange(paragraphIndex, passage);
-        if (exchange) {
-          setCurrentExchangeId(exchange.id);
-          setTimeout(() => {
-            generateSingleResponse(paperId, undefined, undefined, exchange.id);
-          }, 0);
+          // Create a new exchange for this response
+          const exchange = startExchange(paragraphIndex, para.content);
+          if (exchange) {
+            setCurrentExchangeId(exchange.id);
+            // Capture values for async callback to avoid stale closure
+            const capturedIndex = paragraphIndex;
+            const capturedContent = para.content;
+            setTimeout(() => {
+              generateSingleResponse(paperId, capturedIndex, capturedContent, undefined, undefined, exchange.id);
+            }, 0);
+          }
         }
       }
     },
-    [activePaper, fetchEngagement, generateSingleResponse, getConversationForParagraph, startExchange]
+    [activePaper, fetchEngagement, generateSingleResponse, loadConversationResponses, startExchange]
   );
 
   const handleAsk = useCallback(
@@ -335,14 +488,18 @@ export default function Home() {
 
       setCurrentExchangeId(exchange.id);
 
+      // Capture values to avoid stale closure in async operations
+      const capturedIndex = selectedParagraphIndex;
+      const capturedPassage = selectedParagraph;
+
       if (askingSource) {
         // Directed mode: ask specific source
-        generateSingleResponse(askingSource, undefined, question, exchange.id);
+        generateSingleResponse(askingSource, capturedIndex, capturedPassage, undefined, question, exchange.id);
         setAskingSource(null); // Clear after asking
       } else {
         // Broadcast mode: ask all engaged sources
         for (const paperId of currentEngagedPaperIds) {
-          generateSingleResponse(paperId, undefined, question, exchange.id);
+          generateSingleResponse(paperId, capturedIndex, capturedPassage, undefined, question, exchange.id);
         }
       }
     },
@@ -354,17 +511,21 @@ export default function Home() {
     (paperId: string, replyToContent?: string) => {
       if (!selectedParagraph || selectedParagraphIndex === null) return;
 
+      // Capture values to avoid stale closure
+      const capturedIndex = selectedParagraphIndex;
+      const capturedPassage = selectedParagraph;
+
       // Create a new exchange if we don't have one
       let exchangeId = currentExchangeId;
       if (!exchangeId) {
-        const exchange = startExchange(selectedParagraphIndex, selectedParagraph);
+        const exchange = startExchange(capturedIndex, capturedPassage);
         if (exchange) {
           exchangeId = exchange.id;
           setCurrentExchangeId(exchangeId);
         }
       }
 
-      generateSingleResponse(paperId, replyToContent, undefined, exchangeId || undefined);
+      generateSingleResponse(paperId, capturedIndex, capturedPassage, replyToContent, undefined, exchangeId || undefined);
     },
     [selectedParagraph, selectedParagraphIndex, currentExchangeId, startExchange, generateSingleResponse]
   );
@@ -381,16 +542,12 @@ export default function Home() {
     setCurrentExchangeId(null);
 
     // Remove engagement for this paragraph
-    setEngagements(prev => {
-      const next = new Map(prev);
-      next.delete(selectedParagraphIndex);
-      return next;
-    });
+    clearEngagement(selectedParagraphIndex);
 
     // Re-run prefilter (force=true to bypass cache check)
     const passage = activePaper.paragraphs[selectedParagraphIndex].content;
     fetchEngagement(selectedParagraphIndex, passage, true);
-  }, [selectedParagraphIndex, activePaper, clearConversation, fetchEngagement]);
+  }, [selectedParagraphIndex, activePaper, clearConversation, fetchEngagement, clearEngagement]);
 
   const handleCreateWorkspace = useCallback(
     (name: string) => {
@@ -465,6 +622,32 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
+                {/* Scan document button */}
+                {activePaper && commentingPapers.length > 0 && (
+                  <button
+                    onClick={scanDocumentEngagements}
+                    disabled={scanningDocument}
+                    className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    title="Scan entire document to see which paragraphs have relevant commentary"
+                  >
+                    {scanningDocument ? (
+                      <>
+                        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        {scanProgress ? `${scanProgress.current}/${scanProgress.total}` : 'Scanning...'}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Scan
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -477,6 +660,17 @@ export default function Home() {
             >
               {panelOpen ? 'Hide panel' : 'Show panel'}
             </button>
+            {activeWorkspace && workspacePapers.length > 0 && (
+              <button
+                onClick={() => setShowShareDialog(true)}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+              </button>
+            )}
             <Link href="/library" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
               Library ({commentingPapers.length + (activePaper ? 1 : 0)})
             </Link>
@@ -485,12 +679,11 @@ export default function Home() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Reading pane */}
         <div
-          className={`flex-1 overflow-y-auto transition-all duration-300 ${
-            panelOpen ? 'w-3/5' : 'w-full'
-          }`}
+          className="flex-1 overflow-y-auto"
+          style={{ width: panelOpen ? `${100 - panelWidth}%` : '100%' }}
         >
           <ReadingPane
             document={documentForPane}
@@ -503,9 +696,22 @@ export default function Home() {
           />
         </div>
 
+        {/* Resize handle - wider hit area with thin visual line */}
+        {panelOpen && (
+          <div
+            className="w-2 flex-shrink-0 cursor-col-resize group flex items-center justify-center"
+            onMouseDown={() => setIsResizing(true)}
+          >
+            <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 group-hover:bg-blue-400 dark:group-hover:bg-blue-500 transition-colors" />
+          </div>
+        )}
+
         {/* Conversation panel */}
         {panelOpen && (
-          <div className="w-2/5 flex-shrink-0">
+          <div
+            className="flex-shrink-0 overflow-hidden"
+            style={{ width: `${panelWidth}%` }}
+          >
             <ConversationPanel
               sources={sourcesForComponents}
               engagedSourceIds={currentEngagedPaperIds}
@@ -516,7 +722,6 @@ export default function Home() {
               onSetAskingSource={setAskingSource}
               onGenerateResponse={handleGenerateFromPanel}
               onAsk={handleAsk}
-              onDeleteSource={deletePaper}
               onClearAndRefresh={handleClearAndRefresh}
             />
           </div>
@@ -577,6 +782,16 @@ export default function Home() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Share workspace dialog */}
+      {activeWorkspace && (
+        <ShareWorkspaceDialog
+          workspace={activeWorkspace}
+          papers={workspacePapers}
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+        />
       )}
     </div>
   );

@@ -1,14 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const PDF_EXTRACTION_MODEL = 'google/gemini-2.5-flash';
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error('OPENROUTER_API_KEY is not configured');
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { status: 413 }
+      );
+    }
+
+    const isPdfExtension = file.name.toLowerCase().endsWith('.pdf');
+    const isPdfMimeType = file.type === 'application/pdf';
+
+    if (!isPdfExtension && !isPdfMimeType) {
+      return NextResponse.json(
+        { error: 'Only PDF files are supported' },
+        { status: 400 }
+      );
     }
 
     // Convert file to base64 for OpenRouter
@@ -72,6 +95,14 @@ Output the clean, well-structured text.`
     const result = await response.json();
     const extractedText = result.choices?.[0]?.message?.content || '';
 
+    if (!extractedText.trim()) {
+      console.error('PDF extraction returned empty text:', { filename: file.name });
+      return NextResponse.json(
+        { error: 'No text could be extracted from the PDF' },
+        { status: 422 }
+      );
+    }
+
     // Parse the extracted text into structured paragraphs based on markdown markers
     const paragraphs = parseExtractedText(extractedText);
 
@@ -80,7 +111,8 @@ Output the clean, well-structured text.`
       title,
       paragraphs,
     });
-  } catch {
+  } catch (error) {
+    console.error('PDF parsing failed:', error);
     return NextResponse.json(
       { error: 'Failed to parse PDF' },
       { status: 500 }

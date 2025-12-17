@@ -23,7 +23,7 @@ export default function AgentMessage({ source, content, isStreaming = false }: A
           {source.author}
         </span>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed pl-4">
+      <p className="text-sm text-gray-600 dark:text-gray-200 leading-relaxed pl-4">
         {content || (isStreaming && (
           <span className="text-gray-400 dark:text-gray-500 italic flex items-center gap-1">
             Thinking

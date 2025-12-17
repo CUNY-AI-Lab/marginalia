@@ -1,9 +1,20 @@
 import { NextRequest } from 'next/server';
-import { Source } from '@/lib/types';
+import { Source, EngagementType } from '@/lib/types';
 import { generateContent } from '@/lib/llm';
 
 // Use a fast model for prefiltering
 const PREFILTER_MODEL = 'google/gemini-2.5-flash';
+
+// Valid engagement types for validation
+const VALID_ENGAGEMENT_TYPES: EngagementType[] = [
+  'affirms', 'extends', 'challenges', 'complicates', 'evidence', 'reframes', 'contextualizes'
+];
+
+interface EngagementResult {
+  sourceId: string;
+  type: EngagementType;
+  angle: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,26 +49,72 @@ export async function POST(request: NextRequest) {
 And these sources with their key concerns:
 ${sourceSummaries}
 
-Which sources would have something substantive to contribute to this discussion? Only include sources whose core commitments or concerns genuinely relate to the passage content.
+Which sources would have something substantive to contribute to this discussion? For each source that would engage, identify HOW it would engage.
 
-Return ONLY a JSON array of source IDs that should respond. Example: ["source-1", "source-3"]
+Engagement types:
+- affirms: agrees with the passage's point
+- extends: builds on or adds to the idea
+- challenges: disagrees or pushes back
+- complicates: agrees but with significant caveats
+- evidence: has relevant case study or data
+- reframes: would approach the question differently
+- contextualizes: adds background or theoretical framing
+
+Return a JSON array with engagement details. The "angle" should be a brief (5-15 word) description of the specific way the source engages:
+[
+  { "sourceId": "...", "type": "challenges", "angle": "resists the technological determinism implied here" },
+  { "sourceId": "...", "type": "evidence", "angle": "case study of library automation illustrates this" }
+]
+
 If none would have something substantive to add, return: []`;
 
     const text = await generateContent(prompt, undefined, PREFILTER_MODEL);
 
     // Parse the JSON array from the response
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    let engagements: EngagementResult[] = [];
     let engagedSourceIds: string[] = [];
+
     if (jsonMatch) {
       try {
-        engagedSourceIds = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        // Handle both old format (string array) and new format (object array)
+        if (Array.isArray(parsed)) {
+          if (parsed.length > 0 && typeof parsed[0] === 'string') {
+            // Old format: just IDs - convert with default type
+            engagedSourceIds = parsed;
+            engagements = parsed.map((id: string) => ({
+              sourceId: id,
+              type: 'contextualizes' as EngagementType,
+              angle: 'has relevant perspective'
+            }));
+          } else {
+            // New format: objects with type and angle
+            engagements = parsed
+              .filter((e: { sourceId?: string; type?: string; angle?: string }) =>
+                e.sourceId &&
+                e.type &&
+                VALID_ENGAGEMENT_TYPES.includes(e.type as EngagementType)
+              )
+              .map((e: { sourceId: string; type: string; angle?: string }) => ({
+                sourceId: e.sourceId,
+                type: e.type as EngagementType,
+                angle: e.angle || 'has relevant perspective'
+              }));
+            engagedSourceIds = engagements.map(e => e.sourceId);
+          }
+        }
       } catch {
-        // Invalid JSON from LLM response, return empty array
+        // Invalid JSON from LLM response, return empty arrays
       }
     }
 
     return new Response(
-      JSON.stringify({ engagedSourceIds }),
+      JSON.stringify({
+        engagedSourceIds,  // For backwards compatibility
+        engagements        // New: includes type and angle
+      }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   } catch {

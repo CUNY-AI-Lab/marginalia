@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 
 // Mock the openai module before importing llm
 vi.mock('openai', () => {
@@ -13,8 +13,15 @@ vi.mock('openai', () => {
   };
 });
 
-// Import after mocking
-const { estimateTokens, isWithinTokenLimit } = await import('../lib/llm');
+// Import after mocking - use variables that will be assigned in beforeAll
+let estimateTokens: (text: string) => number;
+let isWithinTokenLimit: (text: string, limit?: number) => boolean;
+
+beforeAll(async () => {
+  const llm = await import('../lib/llm');
+  estimateTokens = llm.estimateTokens;
+  isWithinTokenLimit = llm.isWithinTokenLimit;
+});
 
 describe('estimateTokens', () => {
   it('estimates tokens from word count', () => {

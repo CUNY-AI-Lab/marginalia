@@ -67,4 +67,10 @@ src/
 
 ## License
 
-MIT
+Copyright © 2025–2026 CUNY AI Lab, The Graduate Center, City University of New York.
+
+This software is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). You may use, study, change, and share it, including for commercial purposes. If you distribute a modified version, or run one as a network service that other people use, you must make its complete source code available to them under the same license.
+
+This license applies to every version of this repository, including earlier commits. Copies obtained before November 10, 2026 under the MIT License may still be used under that license, because earlier license grants cannot be withdrawn.
+
+Questions about licensing: [ailab@gc.cuny.edu](mailto:ailab@gc.cuny.edu). See CAIL's [licensing page](https://ailab.gc.cuny.edu/license/).

@@ -3,8 +3,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { Paper, StructuredParagraph } from '@/lib/types';
 import { PDF_PROCESSING_TEXT, PDF_FAILED_TEXT } from '@/lib/constants';
+import { extractPdf, MAX_PDF_BYTES, PdfTextError } from '@/lib/pdf';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - must match server limit
+const MAX_FILE_SIZE = MAX_PDF_BYTES;
 
 interface PaperUploadProps {
   onAdd: (paper: Omit<Paper, 'id' | 'createdAt' | 'updatedAt' | 'color' | 'paragraphs'> & { paragraphs?: StructuredParagraph[] }) => Paper;
@@ -60,26 +61,14 @@ export default function PaperUpload({ onAdd, onUpdate }: PaperUploadProps) {
             fileInputRef.current.value = '';
           }
 
-          // Fire PDF parsing in background (don't await at top level)
-          const formData = new FormData();
-          formData.append('file', file);
-
-          fetch('/api/parse-pdf', {
-            method: 'POST',
-            body: formData,
-          })
-            .then(async (res) => {
-              if (!res.ok) throw new Error('Failed to parse PDF');
-              const data = await res.json();
-              // Update paper with real text when done, pass title for extraction
-              onUpdate(paper.id, {
-                fullText: data.text,
-                paragraphs: data.paragraphs,
-              }, title);
+          // Extract the text here in the browser, in the background; the file is never uploaded.
+          extractPdf(file)
+            .then(({ text, paragraphs }) => {
+              onUpdate(paper.id, { fullText: text, paragraphs }, title);
             })
             .catch((err) => {
-              console.error('PDF parsing failed:', err);
-              // Mark as failed if PDF parsing fails
+              console.error('PDF text extraction failed');
+              setError(err instanceof PdfTextError ? err.message : `Could not read text from ${file.name}.`);
               onUpdate(paper.id, {
                 status: 'error',
                 fullText: PDF_FAILED_TEXT,

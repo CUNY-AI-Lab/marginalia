@@ -1,0 +1,34 @@
+name = "cail-marginalia"
+main = "worker/index.ts"
+compatibility_date = "2026-11-01"
+# request.signal (client disconnect) is opt-in before 2026-11-17; chat relies on it to stop the
+# Gateway call when the reader closes the panel.
+compatibility_flags = ["enable_request_signal"]
+# No public origin: Doorway reaches this Worker only through its MARGINALIA service binding.
+workers_dev = false
+preview_urls = false
+
+[assets]
+directory = "./out"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+
+[vars]
+CAIL_IDENTITY_ISSUER = "https://tools.ailab.gc.cuny.edu/cail-sso"
+# CAIL_IDENTITY_JWKS (the fleet's pinned verifier key set) is installed as a secret by the release.
+
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
+# The Gateway Worker. A global fetch() to tools.ailab.gc.cuny.edu from this Worker would reach the
+# zone's origin (404), not the Gateway, so every Gateway call goes through this binding.
+[[services]]
+binding = "GATEWAY"
+service = "cail-model-api"
+
+# Shared workspaces. A bucket lifecycle rule deletes objects under shares/ after 30 days.
+[[r2_buckets]]
+binding = "SHARES"
+bucket_name = "cail-marginalia-shares"

@@ -455,7 +455,12 @@ export function segmentIntoParagraphs(text: string): StructuredParagraph[] {
     .split(/\n\n+/)
     .map(p => p.trim())
     .filter(p => p.length > 0)
-    .map(content => ({ type: 'body' as const, content }));
+    .map(content => {
+      // Markdown-style headings ("# ", "## ", "### ") on a single line.
+      const heading = content.match(/^(#{1,3}) (.+)$/);
+      if (heading) return { type: (['h1', 'h2', 'h3'] as const)[heading[1].length - 1], content: heading[2].trim() };
+      return { type: 'body' as const, content };
+    });
 }
 
 // ============ Legacy Functions (for migration/backwards compatibility) ============

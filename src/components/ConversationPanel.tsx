@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Source } from '@/lib/types';
 import AgentMessage from './AgentMessage';
 
@@ -66,9 +67,9 @@ export default function ConversationPanel({
         {sources.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">
             No sources loaded.{' '}
-            <a href="/sources" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/library" className="text-blue-600 dark:text-blue-400 hover:underline">
               Add sources
-            </a>
+            </Link>
           </p>
         ) : (
           <div className="space-y-1">

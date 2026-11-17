@@ -7,6 +7,10 @@ import MigrationBanner from '@/components/MigrationBanner';
 import Link from 'next/link';
 import { Paper, Workspace } from '@/lib/types';
 import { PDF_PROCESSING_TEXT, PDF_FAILED_TEXT } from '@/lib/constants';
+import { apiJSON } from '@/lib/api';
+import { IdentityLayer } from '@/lib/types';
+import QuotaMeter, { notifySpend } from '@/components/QuotaMeter';
+import DemoSets from '@/components/DemoSets';
 
 export default function LibraryPage() {
   const { papers, loading, addPaper, updatePaper, deletePaper } = usePapers();
@@ -75,21 +79,15 @@ export default function LibraryPage() {
       extractingPapersRef.current.add(paperId);
 
       try {
-        const res = await fetch('/api/extract-identity', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: text.slice(0, 100000),
-            title: currentTitle,
-            author: 'Unknown',
-          }),
+        const data = await apiJSON<{
+          identityLayer: IdentityLayer;
+          metadata?: { title?: string | null; author?: string | null };
+        }>('/api/extract-identity', {
+          text: text.slice(0, 100000),
+          title: currentTitle,
+          author: 'Unknown',
         });
-
-        if (!res.ok) {
-          throw new Error('Failed to extract identity');
-        }
-
-        const data = await res.json();
+        notifySpend();
 
         // Update paper with extracted metadata
         updatePaper(paperId, {
@@ -109,7 +107,7 @@ export default function LibraryPage() {
           console.log('Extraction aborted (likely page refresh)');
           return;
         }
-        console.error('Metadata extraction failed:', error);
+        console.error('Metadata extraction failed');
         // Mark as error but keep the paper
         updatePaper(paperId, {
           status: 'error',
@@ -205,12 +203,15 @@ export default function LibraryPage() {
               All your papers. Add them to workspaces to use as reading targets or commentators.
             </p>
           </div>
-          <Link
-            href="/"
-            className="px-4 py-2 text-sm bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md hover:bg-gray-800 dark:hover:bg-gray-200"
-          >
-            Back to Reading
-          </Link>
+          <div className="flex items-center gap-4">
+            <QuotaMeter />
+            <Link
+              href="/"
+              className="px-4 py-2 text-sm bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md hover:bg-gray-800 dark:hover:bg-gray-200"
+            >
+              Back to Reading
+            </Link>
+          </div>
         </div>
 
         {activeWorkspace && (
@@ -235,6 +236,14 @@ export default function LibraryPage() {
           <div>
             <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New Paper</h2>
             <PaperUpload onAdd={handleAddPaper} onUpdate={handleUpdatePaper} />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 leading-relaxed">
+              Your library is kept in this browser. PDFs are read here and never uploaded. When
+              sources comment, the relevant text goes to a model through the CUNY AI Lab Gateway
+              and counts against your Lab allowance; it is not stored there.
+            </p>
+            <div className="mt-8">
+              <DemoSets compact />
+            </div>
           </div>
 
           <div>

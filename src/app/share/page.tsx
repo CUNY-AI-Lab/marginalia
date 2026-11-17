@@ -1,115 +1,56 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { WorkspaceBundle } from '@/lib/r2';
-import {
-  getPapers,
-  savePapers,
-  getWorkspaces,
-  saveWorkspaces,
-  setActiveWorkspaceId,
-  generateId,
-} from '@/lib/storage';
-import { Paper, Workspace, PAPER_COLORS } from '@/lib/types';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { apiJSON, errorMessage } from '@/lib/api';
+import { importBundle, WorkspaceBundle } from '@/lib/bundles';
+import { PAPER_COLORS } from '@/lib/types';
 
 type ImportState = 'loading' | 'preview' | 'importing' | 'success' | 'error';
 
 export default function SharePage() {
-  const params = useParams();
+  return (
+    <Suspense fallback={null}>
+      <ShareImport />
+    </Suspense>
+  );
+}
+
+function ShareImport() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const shareId = params.id as string;
+  const shareId = searchParams.get('id') ?? '';
 
   const [state, setState] = useState<ImportState>('loading');
   const [bundle, setBundle] = useState<WorkspaceBundle | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch the share bundle
   useEffect(() => {
-    async function fetchBundle() {
-      try {
-        const response = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to load shared workspace');
-        }
-
-        const data = await response.json();
+    if (!shareId) {
+      setError('This share link is missing its id.');
+      setState('error');
+      return;
+    }
+    apiJSON<WorkspaceBundle>(`/api/share?id=${encodeURIComponent(shareId)}`)
+      .then(data => {
         setBundle(data);
         setState('preview');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load shared workspace');
+      })
+      .catch(err => {
+        setError(errorMessage(err, 'Failed to load shared workspace'));
         setState('error');
-      }
-    }
-
-    if (shareId) {
-      fetchBundle();
-    }
+      });
   }, [shareId]);
 
-  // Import the workspace into localStorage
   function handleImport() {
     if (!bundle) return;
-
     setState('importing');
-
     try {
-      // Get existing papers and workspaces
-      const existingPapers = getPapers();
-      const existingWorkspaces = getWorkspaces();
-
-      // Get next color index based on existing papers
-      let colorIndex = existingPapers.length % PAPER_COLORS.length;
-
-      // Create papers from bundle
-      const now = Date.now();
-      const newPaperIds: string[] = [];
-      const newPapers: Paper[] = bundle.papers.map((bundlePaper) => {
-        const paperId = generateId();
-        newPaperIds.push(paperId);
-        const paper: Paper = {
-          id: paperId,
-          title: bundlePaper.title,
-          author: bundlePaper.author,
-          type: bundlePaper.type,
-          fullText: bundlePaper.fullText,
-          paragraphs: bundlePaper.paragraphs,
-          identityLayer: bundlePaper.identityLayer || null,
-          color: PAPER_COLORS[colorIndex++ % PAPER_COLORS.length],
-          createdAt: now,
-          updatedAt: now,
-          status: 'ready',
-        };
-        return paper;
-      });
-
-      // Create workspace
-      const workspaceId = generateId();
-      const workspace: Workspace = {
-        id: workspaceId,
-        name: bundle.workspace.name,
-        description: bundle.workspace.description,
-        paperIds: newPaperIds,
-        activePaperId: newPaperIds[0] || null,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Save to localStorage
-      savePapers([...existingPapers, ...newPapers]);
-      saveWorkspaces([...existingWorkspaces, workspace]);
-      setActiveWorkspaceId(workspaceId);
-
+      importBundle(bundle);
       setState('success');
-
-      // Redirect to main page after short delay
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to import workspace');
+      setTimeout(() => router.push('/'), 1500);
+    } catch {
+      setError('Failed to import workspace. Your browser storage may be full.');
       setState('error');
     }
   }

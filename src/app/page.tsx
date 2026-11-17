@@ -8,7 +8,25 @@ import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import MigrationBanner from '@/components/MigrationBanner';
 import ShareWorkspaceDialog from '@/components/ShareWorkspaceDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import QuotaMeter, { notifySpend } from '@/components/QuotaMeter';
+import DemoSets from '@/components/DemoSets';
 import Link from 'next/link';
+import { apiFetch, apiJSON, errorMessage, readEvents } from '@/lib/api';
+import { EngagementType } from '@/lib/types';
+
+interface EngagementEntry {
+  sourceId: string;
+  type: EngagementType;
+  angle: string;
+}
+
+// Only what the relevance check needs; full texts stay in the browser.
+const summarize = (paper: { id: string; title: string; author: string; identityLayer: unknown }) => ({
+  id: paper.id,
+  title: paper.title,
+  author: paper.author,
+  identityLayer: paper.identityLayer,
+});
 
 interface AgentResponseState {
   sourceId: string;
@@ -196,27 +214,15 @@ export default function Home() {
       setLoadingEngagement(paragraphIndex);
 
       try {
-        const res = await fetch('/api/prefilter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            passage,
-            sources: commentingPapers, // API still expects 'sources' field
-          }),
+        const data = await apiJSON<{ engagements: EngagementEntry[] }>('/api/prefilter', {
+          passage,
+          sources: commentingPapers.map(summarize),
         });
-
-        if (!res.ok) throw new Error('Failed to fetch engagement');
-
-        const data = await res.json();
-        // Use full engagements if available, fallback to engagedSourceIds for backwards compatibility
-        const entries = data.engagements || data.engagedSourceIds?.map((id: string) => ({
-          sourceId: id,
-          type: 'contextualizes',
-          angle: 'has relevant perspective',
-        })) || [];
+        notifySpend();
+        const entries = data.engagements || [];
         updateEngagement(paragraphIndex, entries);
       } catch (error) {
-        console.error('Error fetching engagement:', error);
+        console.error('Error fetching engagement:', errorMessage(error));
       } finally {
         setLoadingEngagement(null);
       }
@@ -248,33 +254,20 @@ export default function Home() {
           if (engagements.has(paragraphIndex)) return;
 
           try {
-            const res = await fetch('/api/prefilter', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                passage: para.content,
-                sources: commentingPapers,
-              }),
+            const data = await apiJSON<{ engagements: EngagementEntry[] }>('/api/prefilter', {
+              passage: para.content,
+              sources: commentingPapers.map(summarize),
             });
-
-            if (res.ok) {
-              const data = await res.json();
-              // Use full engagements if available, fallback to engagedSourceIds
-              const entries = data.engagements || data.engagedSourceIds?.map((id: string) => ({
-                sourceId: id,
-                type: 'contextualizes',
-                angle: 'has relevant perspective',
-              })) || [];
-              updateEngagement(paragraphIndex, entries);
-            }
+            updateEngagement(paragraphIndex, data.engagements || []);
           } catch (error) {
-            console.error(`Error scanning paragraph ${paragraphIndex}:`, error);
+            console.error(`Error scanning paragraph ${paragraphIndex}:`, errorMessage(error));
           }
         })
       );
 
       setScanProgress({ current: Math.min(i + batchSize, total), total });
     }
+    notifySpend();
 
     setScanningDocument(false);
     setScanProgress(null);
@@ -310,95 +303,48 @@ export default function Home() {
       ]);
 
       let finalContent = '';
-      let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+      const source = commentingPapers.find(p => p.id === paperId);
+      const fail = (message: string) =>
+        setResponses(prev =>
+          prev.map(r => (r.sourceId === paperId && !r.done ? { ...r, content: message, done: true } : r))
+        );
 
       try {
-        const res = await fetch('/api/chat', {
+        if (!source) throw new Error('Source not found');
+        const res = await apiFetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            passage: passage,
-            sources: commentingPapers, // API still expects 'sources' field
-            sourceId: paperId,
+            passage,
+            source: { ...summarize(source), fullText: source.fullText },
             mode: 'brief',
             context: replyToContent,
-            question: question,
+            question,
             conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
-            engagement: engagement,
+            engagement,
           }),
         });
 
-        if (!res.ok) throw new Error('Failed to fetch response');
-
-        reader = res.body?.getReader();
-        if (!reader) throw new Error('No response body');
-
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value);
-          const lines = text.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-
-                if (data.type === 'chunk') {
-                  finalContent += data.content;
-                  setResponses(prev =>
-                    prev.map(r =>
-                      r.sourceId === data.sourceId && !r.done
-                        ? { ...r, content: r.content + data.content }
-                        : r
-                    )
-                  );
-                } else if (data.type === 'done') {
-                  setResponses(prev =>
-                    prev.map(r =>
-                      r.sourceId === data.sourceId && !r.done ? { ...r, done: true } : r
-                    )
-                  );
-                  // Save to storage when done - uses captured paragraphIndex, not closure
-                  if (exchangeId && finalContent) {
-                    addResponseToStorage(paragraphIndex, exchangeId, paperId, finalContent);
-                  }
-                } else if (data.type === 'error') {
-                  setResponses(prev =>
-                    prev.map(r =>
-                      r.sourceId === data.sourceId && !r.done
-                        ? { ...r, content: 'Failed to generate response', done: true }
-                        : r
-                    )
-                  );
-                }
-              } catch {
-                // Ignore parse errors
-              }
+        for await (const data of readEvents(res)) {
+          if (data.type === 'chunk' && data.content) {
+            finalContent += data.content;
+            const chunk = data.content;
+            setResponses(prev =>
+              prev.map(r => (r.sourceId === paperId && !r.done ? { ...r, content: r.content + chunk } : r))
+            );
+          } else if (data.type === 'done') {
+            setResponses(prev => prev.map(r => (r.sourceId === paperId && !r.done ? { ...r, done: true } : r)));
+            if (exchangeId && finalContent) {
+              addResponseToStorage(paragraphIndex, exchangeId, paperId, finalContent);
             }
+          } else if (data.type === 'error') {
+            fail(data.error || 'Failed to generate response');
           }
         }
       } catch (error) {
-        console.error('Error generating response:', error);
-        setResponses(prev =>
-          prev.map(r =>
-            r.sourceId === paperId && !r.done
-              ? { ...r, content: 'Failed to generate response', done: true }
-              : r
-          )
-        );
+        fail(errorMessage(error, 'Failed to generate response'));
       } finally {
-        // Always release the reader to prevent memory leaks
-        if (reader) {
-          try {
-            reader.releaseLock();
-          } catch {
-            // Reader may already be released
-          }
-        }
+        notifySpend();
         setLoadingSourceId(null);
       }
     },
@@ -597,7 +543,7 @@ export default function Home() {
       <header className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-serif font-medium text-gray-900 dark:text-gray-100">Marginalia</h1>
+            <h1 className="text-lg font-serif font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">Marginalia</h1>
 
             <WorkspaceSwitcher
               workspaces={workspaces}
@@ -653,17 +599,18 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
+            <QuotaMeter />
             <ThemeToggle />
             <button
               onClick={() => setPanelOpen(!panelOpen)}
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             >
               {panelOpen ? 'Hide panel' : 'Show panel'}
             </button>
             {activeWorkspace && workspacePapers.length > 0 && (
               <button
                 onClick={() => setShowShareDialog(true)}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1"
+                className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -671,7 +618,7 @@ export default function Home() {
                 Share
               </button>
             )}
-            <Link href="/library" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+            <Link href="/library" className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
               Library ({commentingPapers.length + (activePaper ? 1 : 0)})
             </Link>
           </div>
@@ -731,20 +678,21 @@ export default function Home() {
       {/* Empty state - no workspace */}
       {!activeWorkspace && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center pointer-events-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+          <div className="text-center pointer-events-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-serif text-gray-700 dark:text-gray-200 mb-4">Welcome to Marginalia</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-              Create a workspace to organize your papers. Any paper can be the one you&apos;re
-              reading, while others provide commentary.
+            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+              Read one text while the others in your workspace comment on it from their own
+              positions. Start with a demo set, or create a workspace for your own papers.
             </p>
+            <DemoSets />
             <button
               onClick={() => {
                 const name = prompt('Workspace name:');
                 if (name) handleCreateWorkspace(name);
               }}
-              className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md text-sm hover:bg-gray-800 dark:hover:bg-gray-200"
+              className="mt-6 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md text-sm hover:bg-gray-800 dark:hover:bg-gray-200"
             >
-              Create Your First Workspace
+              Create an empty workspace
             </button>
           </div>
         </div>

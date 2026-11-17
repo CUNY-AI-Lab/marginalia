@@ -77,7 +77,7 @@ export function usePapers() {
     const updated = currentPapers.map(p => {
       if (p.id !== id) return p;
       const newPaper = { ...p, ...updates, updatedAt: Date.now() };
-      if (updates.fullText) {
+      if (updates.fullText && !updates.paragraphs) {
         newPaper.paragraphs = segmentIntoParagraphs(updates.fullText);
       }
       return newPaper;

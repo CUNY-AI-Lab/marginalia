@@ -298,3 +298,87 @@ ${identityLayer.voiceSamples.map(q => `"${q}"`).join('\n')}`;
     return null;
   }
 }
+
+const ENGAGEMENT_TYPE_LIST: EngagementType[] = [
+  'affirms', 'extends', 'challenges', 'complicates', 'evidence', 'reframes', 'contextualizes',
+];
+
+export interface PrefilterEngagement {
+  sourceId: string;
+  type: EngagementType;
+  angle: string;
+}
+
+export function buildPrefilterPrompt(passage: string, sources: Source[]): string {
+  const sourceSummaries = sources.map(source => {
+    const identity = source.identityLayer;
+    if (!identity) {
+      return `- ${source.id}: "${source.title}" by ${source.author}`;
+    }
+    const triggers = identity.triggers || '';
+    const vocab = identity.vocabulary?.slice(0, 5).join(', ') || '';
+    return `- ${source.id}: "${source.title}" - Key concerns: ${triggers.slice(0, 200)}. Vocabulary: ${vocab}`;
+  }).join('\n');
+
+  return `Given this passage being discussed in a seminar:
+
+"${passage}"
+
+And these sources with their key concerns:
+${sourceSummaries}
+
+Which sources would have something substantive to contribute to this discussion? For each source that would engage, identify HOW it would engage.
+
+Engagement types:
+- affirms: agrees with the passage's point
+- extends: builds on or adds to the idea
+- challenges: disagrees or pushes back
+- complicates: agrees but with significant caveats
+- evidence: has relevant case study or data
+- reframes: would approach the question differently
+- contextualizes: adds background or theoretical framing
+
+Return ONLY a JSON array with engagement details. Use the source ids exactly as given. The "angle" should be a brief (5-15 word) description of the specific way the source engages:
+[
+  { "sourceId": "...", "type": "challenges", "angle": "resists the technological determinism implied here" },
+  { "sourceId": "...", "type": "evidence", "angle": "case study of library automation illustrates this" }
+]
+
+If none would have something substantive to add, return: []`;
+}
+
+// Reads the model's JSON array, keeping only known source ids and engagement types.
+export function parsePrefilterResponse(text: string, knownIds: Set<string>): PrefilterEngagement[] {
+  const candidates: string[] = [];
+  const first = text.indexOf('[');
+  const last = text.lastIndexOf(']');
+  if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));
+  const lazy = text.match(/\[[\s\S]*?\]/);
+  if (lazy) candidates.push(lazy[0]);
+  for (const candidate of candidates) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(parsed)) continue;
+    const seen = new Set<string>();
+    const engagements: PrefilterEngagement[] = [];
+    for (const item of parsed) {
+      const entry = typeof item === 'string' ? { sourceId: item, type: 'contextualizes', angle: 'has relevant perspective' } : item;
+      if (!entry || typeof entry !== 'object') continue;
+      const { sourceId, type, angle } = entry as { sourceId?: unknown; type?: unknown; angle?: unknown };
+      if (typeof sourceId !== 'string' || !knownIds.has(sourceId) || seen.has(sourceId)) continue;
+      if (!ENGAGEMENT_TYPE_LIST.includes(type as EngagementType)) continue;
+      seen.add(sourceId);
+      engagements.push({
+        sourceId,
+        type: type as EngagementType,
+        angle: typeof angle === 'string' && angle.trim() ? angle.trim().slice(0, 300) : 'has relevant perspective',
+      });
+    }
+    return engagements;
+  }
+  return [];
+}

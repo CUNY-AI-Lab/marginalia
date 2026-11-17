@@ -26,7 +26,7 @@ Spend is person-funded. Gateway reports it as `unattributed`, because the Gatewa
 
 | Name | Kind | Used by |
 | --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | secret | `wrangler deploy`, bucket setup, release readback. Needs Workers Scripts edit, Workers R2 Storage edit, and account read on the Lab account |
+| `CLOUDFLARE_API_TOKEN` | secret | `wrangler deploy` and release readback. Account-owned token "marginalia deploy (GitHub Actions, CUNY-AI-Lab/marginalia)": Individual Workers Editor on `cail-marginalia` only, expires 2027-11-17 |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | same; must be the account that holds `cail-doorway` and `cail-model-api`, since service bindings resolve only within one account |
 | `CAIL_IDENTITY_JWKS` | secret | validated for `cail:marginalia` and `cail:gateway`, then installed on the Worker. It must be the fleet's pinned verifier key set, the one Doorway signs with (published at `https://tools.ailab.gc.cuny.edu/cail-sso/.well-known/jwks.json`) |
 
@@ -49,8 +49,13 @@ The `@cuny-ai-lab/*` packages install from public npm (see `.npmrc`); no package
 1. Merge to `main` and wait for the workflow's `check` job.
 2. Run **Check and private release** with the exact current `main` SHA:
    `gh workflow run release.yml --repo CUNY-AI-Lab/marginalia -f sha=$(git rev-parse origin/main)`.
-3. The release job rejects a stale SHA, builds, ensures the bucket, deploys with the commit as the
-   version tag, and reads back bindings, runtime settings and disabled ingress.
+3. The release job rejects a stale SHA, builds, deploys with the commit as the version tag, and reads
+   back bindings, runtime settings and disabled ingress.
+
+The shares bucket and its 30-day rule are one-time setup, done on 2026-11-17. The release token
+cannot change R2; to recreate them, run `node scripts/ensure-shares-bucket.mjs` with an R2-admin
+token, or `wrangler r2 bucket create` and `wrangler r2 bucket lifecycle add` from a signed-in
+operator machine.
 
 ## 2. Doorway mount
 

@@ -1,5 +1,7 @@
-// Creates the shares bucket if it is missing and pins its lifecycle: objects under shares/ are
-// deleted 30 days after upload (the Worker also refuses older shares on read). Idempotent.
+// One-time setup, run by an operator with an R2-admin credential (the release token is scoped to
+// the cail-marginalia Worker only). Creates the shares bucket if it is missing and pins its
+// lifecycle: objects under shares/ are deleted 30 days after upload (the Worker also refuses older
+// shares on read). Idempotent.
 import assert from 'node:assert/strict';
 import { cf } from './cloudflare.mjs';
 

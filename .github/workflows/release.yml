@@ -47,11 +47,6 @@ jobs:
           node-version: 22.23.4
       - run: npm ci
       - run: npm run build
-      - name: Ensure the shares bucket and its 30-day expiry rule
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: node scripts/ensure-shares-bucket.mjs
       - name: Deploy checked current main privately and read back configuration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { apiJSON, errorMessage } from '@/lib/api';
 import { Paper, Workspace, PAPER_COLORS } from '@/lib/types';
 
 interface ShareWorkspaceDialogProps {
@@ -67,35 +68,24 @@ export default function ShareWorkspaceDialog({
     setError(null);
 
     try {
-      const response = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspace: {
-            name: workspace.name,
-            description: workspace.description,
-          },
-          papers: workspacePapers.map(p => ({
-            title: p.title,
-            author: p.author,
-            type: p.type,
-            fullText: p.fullText,
-            paragraphs: p.paragraphs,
-            identityLayer: p.identityLayer,
-          })),
-        }),
+      const data = await apiJSON<{ url: string; expiresInDays: number }>('/api/share', {
+        workspace: {
+          name: workspace.name,
+          description: workspace.description,
+        },
+        papers: workspacePapers.map(p => ({
+          title: p.title,
+          author: p.author,
+          type: p.type,
+          fullText: p.fullText,
+          paragraphs: p.paragraphs,
+          identityLayer: p.identityLayer ?? undefined,
+        })),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create share');
-      }
-
-      const data = await response.json();
       setShareUrl(data.url);
       setState('success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create share');
+      setError(errorMessage(err, 'Failed to create share'));
       setState('error');
     }
   }
@@ -164,7 +154,7 @@ export default function ShareWorkspaceDialog({
 
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Only extracted text and identity layers are shared. Original PDF files are not included.
-                Students who open the link can import the workspace to their library.
+                Anyone at CUNY who signs in and opens the link can import the full texts and source profiles into their own library. Links expire after 30 days. Share only texts you are allowed to share.
               </p>
             </div>
 
@@ -225,7 +215,7 @@ export default function ShareWorkspaceDialog({
               </div>
 
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                Anyone with this link can import the workspace to their library.
+                Anyone at CUNY who signs in with this link can import the workspace. It expires in 30 days.
               </p>
             </div>
 

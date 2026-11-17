@@ -11,59 +11,68 @@ A reading assistant that turns documents into conversational agents. Upload PDFs
 
 The interface implements a "moderated seminar" where your sources can participate in discussion while you read or write.
 
-## Requirements
+## Where it runs
 
-- Node.js 18+
-- Google Gemini API key
+Marginalia is a CUNY AI Lab tool at `https://tools.ailab.gc.cuny.edu/marginalia/`, behind CUNY
+Login. It is a static Next.js export served by a private Cloudflare Worker, `cail-marginalia`,
+which [Doorway](https://github.com/CUNY-AI-Lab/cail-tools-admission) mounts through a service
+binding. The Worker has no public hostname.
 
-## Setup
+- **Sign-in and access.** Doorway signs the person in, checks current Lab membership, and forwards
+  two identity tokens: one for `cail:marginalia` and one for `cail:gateway`. The Worker verifies
+  both with `@cuny-ai-lab/cail-identity` and forwards only the Gateway token.
+- **Models.** Every model call goes to the CAIL Gateway through the `GATEWAY → cail-model-api`
+  service binding, using `@cuny-ai-lab/cail-client`. The model is `deepseek-v4.1-flash-1017`
+  (1M-token context). There are no provider keys in this app.
+- **Allowance.** Calls are charged to the signed-in person's Lab allowance. The header shows the
+  Gateway's delayed estimate from `/v1/quota`; the Gateway enforces the limit. A source's full text
+  is sent with a comment only when it is under 40,000 tokens; longer sources speak from their
+  profile alone, so one comment from one source costs about a cent or less.
+- **Data.** The library, workspaces and conversations live in the browser's `localStorage`. PDFs
+  are parsed in the browser with pdf.js and never uploaded. Shared workspaces are stored in the
+  R2 bucket `cail-marginalia-shares`, readable by any signed-in CUNY member with the link, and
+  deleted after 30 days.
+- **Demo sets.** `public/demo/` holds three public-domain reading sets with source profiles
+  already written, so a first visit can start reading without uploading anything. See
+  `public/demo/SOURCES.md`.
+
+## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Create environment file
-cp .env.example .env.local
-
-# Add your Gemini API key to .env.local
-# GEMINI_API_KEY=your_key_here
-
-# Run development server
-npm run dev
+npm ci
+npm run local      # build, then serve http://localhost:8790/marginalia/
 ```
 
-Open http://localhost:3000
+`npm run local` runs the real Worker in Node behind a stand-in for Doorway: it signs identity
+tokens with a throwaway test key, answers model calls with canned text, and keeps shares in
+memory. Nothing it does reaches CAIL services or spends an allowance.
 
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js pages and API routes
-│   ├── page.tsx           # Main reading interface
-│   ├── library/           # Document library
-│   ├── sources/           # Source management
-│   ├── workspaces/        # Workspace switcher
-│   └── api/               # Backend endpoints
-│       ├── chat/          # Agent chat
-│       ├── parse-pdf/     # PDF text extraction
-│       ├── extract-identity/  # Source identity extraction
-│       └── prefilter/     # Relevance filtering
-├── components/            # React components
-├── hooks/                 # Custom React hooks
-└── lib/                   # Utilities and business logic
-    ├── gemini.ts          # Gemini API client
-    ├── types.ts           # TypeScript interfaces
-    └── prompts.ts         # LLM prompt templates
+```bash
+npm run check      # lint, typecheck (app and Worker), tests, static build, Worker dry-run
 ```
 
-## Tech Stack
+The Worker tests use the real identity verifier with tokens from
+`@cuny-ai-lab/cail-identity/testing` and the real CAIL client against a controlled Gateway. Global
+`fetch()` answers 404 in tests, as the zone origin does for a Worker that bypasses the binding.
 
-- Next.js 14 (App Router)
-- TypeScript
-- Google Gemini AI
-- pdfjs-dist for PDF parsing
-- Tailwind CSS
-- LocalStorage for data persistence
+## Release
+
+See [docs/DEPLOY.md](docs/DEPLOY.md). In short: the **Check and private release** workflow,
+dispatched from `main` with the exact commit SHA, ensures the shares bucket, deploys the Worker
+with the pinned identity key set, and reads the configuration back from Cloudflare. Doorway's
+mount is released separately, after the Worker exists.
+
+## Project structure
+
+```
+worker/                 Cloudflare Worker: identity, Gateway calls, shares, static assets
+src/app/                Next.js pages (reader, library, workspaces, share import)
+src/components/         React components, including the allowance meter and demo sets
+src/lib/prompts.ts      Prompt templates shared by the Worker
+src/lib/pdf.ts          In-browser PDF text and structure extraction
+public/demo/            Built-in demo reading sets
+scripts/                Build helpers, local Doorway stand-in, release scripts
+```
 
 ## License
 

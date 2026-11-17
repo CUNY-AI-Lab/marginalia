@@ -1,0 +1,67 @@
+name: Check and private release
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Exact current main commit to deploy privately
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.4
+      - run: npm ci
+      - run: npm run check
+  release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-24.04
+    environment: production
+    concurrency:
+      group: marginalia-production-release
+      cancel-in-progress: false
+    env:
+      RELEASE_SHA: ${{ inputs.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reject stale or unchecked release
+        run: |
+          test "$RELEASE_SHA" = "$GITHUB_SHA"
+          test "$RELEASE_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.4
+      - run: npm ci
+      - run: npm run build
+      - name: Ensure the shares bucket and its 30-day expiry rule
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/ensure-shares-bucket.mjs
+      - name: Deploy checked current main privately and read back configuration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CAIL_IDENTITY_JWKS: ${{ secrets.CAIL_IDENTITY_JWKS }}
+        run: |
+          test "$RELEASE_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          export RELEASE_SECRETS_FILE="$RUNNER_TEMP/marginalia-secrets.json"
+          trap 'rm -f "$RELEASE_SECRETS_FILE"' EXIT
+          node --input-type=module -e 'import {writeFileSync} from "node:fs"; import {loadIdentityVerifierConfig,CAIL_CANONICAL_ISSUER} from "@cuny-ai-lab/cail-identity"; const jwks=process.env.CAIL_IDENTITY_JWKS; for(const expectedAudience of ["cail:marginalia","cail:gateway"]){const result=await loadIdentityVerifierConfig({jwks,issuer:CAIL_CANONICAL_ISSUER,expectedAudience,supportedIssuers:[CAIL_CANONICAL_ISSUER]}); if(!result.ok) throw new Error("Invalid release identity configuration");} writeFileSync(process.env.RELEASE_SECRETS_FILE,JSON.stringify({CAIL_IDENTITY_JWKS:jwks}),{mode:0o600});'
+          npx wrangler deploy --strict --tag "$RELEASE_SHA" --message "commit $RELEASE_SHA" --secrets-file "$RELEASE_SECRETS_FILE"
+          node scripts/verify-release.mjs
+          test "$RELEASE_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"

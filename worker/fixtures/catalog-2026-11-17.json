@@ -1,0 +1,177 @@
+{
+ "object": "list",
+ "data": [
+  {
+   "id": "glm-5.3",
+   "object": "model",
+   "name": "Glm 5.3",
+   "task": "Text Generation",
+   "recommended": true,
+   "tier": "recommended",
+   "order": 2,
+   "status": "active",
+   "modality": "text",
+   "provider": "workers-ai",
+   "upstream_model": "glm-5.3",
+   "pricing_known": "catalog",
+   "streaming": true,
+   "sunset": null,
+   "capabilities": [
+    "text-generation",
+    "function-calling",
+    "reasoning"
+   ],
+   "context_length": 1048576,
+   "registry_url": null,
+   "pricing": {
+    "currency": "USD",
+    "unit": "million_tokens",
+    "input": 1.4,
+    "output": 4.4,
+    "basis": "standard"
+   },
+   "description": "GLM-5.3 is Z.ai's flagship agentic coding model, pairing a 1M-token context window with reasoning, function calling, and structured outputs to power multi-step, tool-driven development workflows.",
+   "model_name": "Glm 5.3",
+   "specifications": {
+    "checked_at": "2026-11-17T09:42:52.500Z",
+    "model_url": "https://huggingface.co/zai-org/GLM-5.3",
+    "weights": {
+     "available": true,
+     "source_url": "https://huggingface.co/zai-org/GLM-5.3/tree/ba32f8c19c8738e2c57c71798c601d477a7bf844"
+    },
+    "license": {
+     "name": "glm-5.3",
+     "url": "https://huggingface.co/zai-org/GLM-5.3/blob/ba32f8c19c8738e2c57c71798c601d477a7bf844/LICENSE",
+     "source_url": "https://huggingface.co/zai-org/GLM-5.3/blob/ba32f8c19c8738e2c57c71798c601d477a7bf844/README.md"
+    },
+    "architecture": {
+     "name": "GlmMoeDsaForCausalLM",
+     "source_url": "https://huggingface.co/zai-org/GLM-5.3/blob/ba32f8c19c8738e2c57c71798c601d477a7bf844/config.json"
+    }
+   },
+   "model_group": "zhipuai/glm-5.3"
+  },
+  {
+   "id": "deepseek-v4.1-flash-1017",
+   "object": "model",
+   "name": "DeepSeek V4.1 Flash 1017",
+   "task": "Text Generation",
+   "recommended": true,
+   "tier": "recommended",
+   "order": 1,
+   "status": "active",
+   "modality": "text",
+   "provider": "workers-ai",
+   "upstream_model": "deepseek-v4.1-flash-1017",
+   "pricing_known": "catalog",
+   "streaming": true,
+   "sunset": null,
+   "capabilities": [
+    "text-generation",
+    "function-calling",
+    "reasoning",
+    "vision"
+   ],
+   "context_length": 1048576,
+   "registry_url": null,
+   "pricing": {
+    "currency": "USD",
+    "unit": "million_tokens",
+    "input": 0.3,
+    "output": 1.2,
+    "basis": "standard"
+   },
+   "description": "We introduce DeepSeek-V4.1-Flash, a multimodal Mixture-of-Experts (MoE) model with 552B backbone parameters and support for contexts of up to one million tokens. The model natively processes images and text, and generates text autoregressively.",
+   "model_name": "DeepSeek V4.1 Flash 1017",
+   "specifications": {
+    "checked_at": "2026-11-17T09:42:52.500Z",
+    "model_url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "weights": {
+     "available": true,
+     "source_url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/08c8657f02291e11b6f6b63e0e16014f8e748518"
+    },
+    "license": {
+     "name": "mit",
+     "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/blob/08c8657f02291e11b6f6b63e0e16014f8e748518/LICENSE",
+     "source_url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/blob/08c8657f02291e11b6f6b63e0e16014f8e748518/README.md"
+    },
+    "architecture": {
+     "name": "DeepseekV41ForCausalLM",
+     "source_url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/blob/08c8657f02291e11b6f6b63e0e16014f8e748518/config.json"
+    }
+   },
+   "model_group": "deepseek/deepseek-v4.1-flash-1017"
+  },
+  {
+   "id": "whisper-large-v3-turbo",
+   "object": "model",
+   "name": "Whisper Large V3 Turbo",
+   "task": "Automatic Speech Recognition",
+   "recommended": true,
+   "tier": "recommended",
+   "order": 7,
+   "status": "active",
+   "modality": "text",
+   "provider": "workers-ai",
+   "upstream_model": "whisper-large-v3-turbo",
+   "pricing_known": "catalog",
+   "streaming": false,
+   "sunset": null,
+   "capabilities": [
+    "automatic-speech-recognition"
+   ],
+   "context_length": null,
+   "registry_url": null,
+   "unit_prices": [
+    {
+     "currency": "USD",
+     "price": 0.000513,
+     "unit": "audio minute"
+    }
+   ],
+   "description": "Whisper is a pre-trained model for automatic speech recognition (ASR) and speech translation.",
+   "model_name": "Whisper Large V3 Turbo"
+  },
+  {
+   "id": "mistral-large-3-675b-instruct",
+   "object": "model",
+   "name": "Mistral Large 3",
+   "task": "Text Generation",
+   "recommended": true,
+   "tier": "recommended",
+   "order": 6,
+   "status": "active",
+   "modality": "text",
+   "provider": "bedrock-mantle",
+   "upstream_model": "mistral-large-3-675b-instruct",
+   "pricing_known": "catalog",
+   "streaming": true,
+   "sunset": null,
+   "capabilities": [
+    "text-generation",
+    "vision",
+    "function-calling",
+    "structured-output"
+   ],
+   "context_length": 262144,
+   "registry_url": null,
+   "pricing": {
+    "currency": "USD",
+    "unit": "million_tokens",
+    "input": 0.5,
+    "output": 1.5,
+    "basis": "standard"
+   },
+   "description": "Mistral's largest general model for enterprise agents, coding, and multilingual reasoning",
+   "model_name": "Mistral Large 3",
+   "specifications": {
+    "checked_at": "2026-11-17T09:42:52.500Z",
+    "size": {
+     "label": "675B",
+     "basis": "advertised",
+     "source_url": "https://tools.ailab.gc.cuny.edu/v1/catalog"
+    }
+   }
+  }
+ ]
+}

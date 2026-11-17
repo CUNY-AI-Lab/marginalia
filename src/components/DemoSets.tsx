@@ -6,6 +6,9 @@ import { DemoSetSummary, importBundle, WorkspaceBundle } from '@/lib/bundles';
 
 // Built-in public-domain reading sets. Each comes with its source profiles already written, so it
 // can be read immediately; only the commentary itself calls a model.
+// The card shows what the texts argue; the provenance note is said once below the cards.
+const summary = (description: string) => description.replace(/\s*Public-domain texts[^.]*(?:\.[^.]*)?\.\s*$/, '');
+
 export default function DemoSets({ compact = false }: { compact?: boolean }) {
   const [sets, setSets] = useState<DemoSetSummary[] | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -36,28 +39,32 @@ export default function DemoSets({ compact = false }: { compact?: boolean }) {
   if (!sets || sets.length === 0) return null;
   return (
     <div className="text-left">
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Try a demo set</h3>
-      <div className={`grid gap-3 ${compact ? '' : 'sm:grid-cols-3'}`}>
+      <h2 className={`${compact ? 'text-sm font-medium text-gray-700 dark:text-gray-300' : 'text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400'} mb-3`}>
+        {compact ? 'Demo sets' : 'Start with a demo set'}
+      </h2>
+      <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-3'}`}>
         {sets.map(set => (
           <button
             key={set.slug}
             type="button"
             onClick={() => open(set.slug)}
             disabled={loading !== null}
-            className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 bg-stone-50 dark:bg-gray-900 disabled:opacity-60 disabled:cursor-wait transition-colors"
+            className="group flex flex-col text-left p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-blue-600 dark:hover:border-blue-400 hover:shadow-[0_8px_24px_rgba(0,45,114,0.08)] disabled:opacity-60 disabled:cursor-wait transition-all"
           >
-            <span className="block font-serif text-gray-900 dark:text-gray-100 mb-1">{set.name}</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">{set.description}</span>
-            <span className="block text-xs text-gray-400 dark:text-gray-500">
-              {set.papers.map(p => p.author).filter((a, i, all) => all.indexOf(a) === i).join(' · ')}
+            <span className={`block font-display ${compact ? 'text-base' : 'text-xl'} font-semibold leading-snug text-gray-900 dark:text-gray-50`}>{set.name}</span>
+            <span className="mt-2 block text-sm leading-relaxed text-gray-600 dark:text-gray-300">{summary(set.description)}</span>
+            <span className="mt-4 block text-xs text-gray-500 dark:text-gray-400">
+              {set.papers.map(p => p.author.replace(/\s*\((?:trans|ed)\.[^)]*\)/, '')).filter((a, i, all) => all.indexOf(a) === i).join(' · ')}
             </span>
-            {loading === set.slug && <span className="block text-xs text-blue-600 dark:text-blue-400 mt-2">Opening…</span>}
+            <span className="mt-auto pt-4 text-sm font-medium text-blue-700 dark:text-blue-300">
+              {loading === set.slug ? 'Opening…' : `Read ${set.papers.length} texts →`}
+            </span>
           </button>
         ))}
       </div>
       {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{error}</p>}
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-        Public-domain texts. Opening a set adds it to your library in this browser.
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+        Public-domain texts, some excerpted, with source profiles already written. Opening a set adds it to your library in this browser.
       </p>
     </div>
   );

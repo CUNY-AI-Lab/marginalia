@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Source } from '@/lib/types';
+import { EngagementEntry } from '@/lib/storage';
 import AgentMessage from './AgentMessage';
 
 interface AgentResponseState {
@@ -10,25 +11,56 @@ interface AgentResponseState {
   content: string;
   done: boolean;
   replyTo?: string;
-  question?: string;  // The user's question that prompted this response
+  question?: string; // The reader's question that prompted this response
 }
 
 interface ConversationPanelProps {
   sources: Source[];
-  engagedSourceIds: string[]; // Sources that would engage with current paragraph
+  engagedSourceIds: string[]; // Sources that would engage with the current paragraph
+  engagements?: EngagementEntry[]; // How each engaged source engages
+  checkingRelevance?: boolean;
   responses: AgentResponseState[];
   loadingSourceId: string | null; // Which source is currently generating
   selectedParagraph: string | null;
-  askingSource: string | null; // Which source is targeted for next question (null = broadcast)
+  askingSource: string | null; // Which source is targeted for the next question (null = all)
   onSetAskingSource: (sourceId: string | null) => void;
   onGenerateResponse: (sourceId: string, replyToContent?: string) => void;
   onAsk: (question: string) => void;
   onClearAndRefresh?: () => void;
 }
 
+// Display name for a source's author, without translator notes.
+export function authorName(source: Pick<Source, 'author' | 'title'>): string {
+  const author = (source.author || '').replace(/\s*\((?:trans|tr|ed)\.[^)]*\)/i, '').trim();
+  if (!author || /^(unknown|extracting\.\.\.|upload failed|extraction failed)$/i.test(author)) return source.title;
+  return author;
+}
+
+const ENGAGEMENT_LABEL: Record<string, string> = {
+  affirms: 'Affirms',
+  extends: 'Extends',
+  challenges: 'Challenges',
+  complicates: 'Complicates',
+  evidence: 'Evidence',
+  reframes: 'Reframes',
+  contextualizes: 'Context',
+};
+
+function Dots() {
+  return (
+    <span className="inline-flex gap-0.5" aria-hidden="true">
+      {[0, 150, 300].map(delay => (
+        <span key={delay} className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+      ))}
+    </span>
+  );
+}
+
 export default function ConversationPanel({
   sources,
   engagedSourceIds,
+  engagements = [],
+  checkingRelevance = false,
   responses,
   loadingSourceId,
   selectedParagraph,
@@ -49,240 +81,184 @@ export default function ConversationPanel({
   };
 
   const getSourceById = (id: string) => sources.find(s => s.id === id);
-
-  // Split into engaged sources that haven't responded yet vs those that have
+  const engagementFor = (id: string) => engagements.find(e => e.sourceId === id);
   const respondedSourceIds = new Set(responses.map(r => r.sourceId));
-  const pendingEngagedSources = engagedSourceIds
-    .filter(id => !respondedSourceIds.has(id))
-    .map(id => getSourceById(id))
-    .filter((s): s is Source => s !== undefined && s !== null);
+  const busy = loadingSourceId !== null;
+
+  // Engaged sources first (in the model's order), then the rest.
+  const orderedSources = [
+    ...engagedSourceIds.map(getSourceById).filter((s): s is Source => !!s),
+    ...sources.filter(s => !engagedSourceIds.includes(s.id)),
+  ];
+  const asking = askingSource ? getSourceById(askingSource) : undefined;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
-      {/* Sources roster with engagement status */}
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-        <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
-          Sources
-        </div>
-        {sources.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No sources loaded.{' '}
-            <Link href="/library" className="text-blue-600 dark:text-blue-400 hover:underline">
-              Add sources
-            </Link>
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800">
+      <div className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800">
+        <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-gray-50">In the margins</h2>
+        {selectedParagraph ? (
+          <blockquote className="mt-2 border-l-2 border-blue-600 dark:border-blue-400 pl-3 font-serif text-sm italic text-gray-600 dark:text-gray-300 line-clamp-3">
+            {selectedParagraph}
+          </blockquote>
+        ) : (
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {sources.length === 0 ? 'Add another text to this workspace to hear it respond.' : 'Select a passage in the text.'}
           </p>
-        ) : (
-          <div className="space-y-1">
-            {sources.map((source) => {
-              const isEngaged = engagedSourceIds.includes(source.id);
-              const hasResponded = respondedSourceIds.has(source.id);
-              const isLoading = loadingSourceId === source.id;
+        )}
+      </div>
 
-              return (
-                <div
-                  key={source.id}
-                  className="flex items-center gap-2 py-1"
-                >
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: source.color }}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
-                    {source.title}
-                  </span>
-                  {selectedParagraph && (
-                    <>
-                      {hasResponded ? (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">responded</span>
-                      ) : isLoading ? (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                          <span className="flex gap-0.5">
-                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </span>
-                          analyzing
-                        </span>
-                      ) : isEngaged ? (
-                        <button
-                          onClick={() => onGenerateResponse(source.id)}
-                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300"
-                        >
-                          hear
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+      <div className="flex-1 overflow-y-auto">
+        {/* Sources */}
+        <section className="px-5 py-4 border-b border-gray-100 dark:border-gray-800" aria-label="Sources">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Sources{sources.length > 0 ? ` (${sources.length})` : ''}
+            </span>
+            {checkingRelevance && (
+              <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                Finding who would respond <Dots />
+              </span>
+            )}
+          </div>
+
+          {sources.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No other texts in this workspace.{' '}
+              <Link href="/library" className="text-blue-600 dark:text-blue-400 underline-offset-2 hover:underline">
+                Add some from your library
+              </Link>
+              .
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {orderedSources.map(source => {
+                const engagement = engagementFor(source.id);
+                const isEngaged = engagedSourceIds.includes(source.id);
+                const hasResponded = respondedSourceIds.has(source.id);
+                const isLoading = loadingSourceId === source.id;
+                const quiet = selectedParagraph && !checkingRelevance && !isEngaged;
+                return (
+                  <li
+                    key={source.id}
+                    className={`rounded-lg px-3 py-2.5 ${isEngaged ? 'bg-gray-50 dark:bg-gray-800/60' : ''} ${quiet ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: source.color }} aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{authorName(source)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate" title={source.title}>{source.title}</div>
+                        {selectedParagraph && engagement && (
+                          <p className="mt-1.5 text-xs text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">{ENGAGEMENT_LABEL[engagement.type] ?? engagement.type}</span>
+                            {engagement.angle && engagement.angle !== 'has relevant perspective' ? ` — ${engagement.angle}` : ''}
+                          </p>
+                        )}
+                      </div>
+                      {selectedParagraph && (
+                        <div className="flex-shrink-0 pt-0.5">
+                          {isLoading ? (
+                            <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                              Reading <Dots />
+                            </span>
+                          ) : hasResponded ? (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">Responded</span>
+                          ) : (
+                            <button
+                              onClick={() => onGenerateResponse(source.id)}
+                              disabled={busy || checkingRelevance}
+                              className={`text-xs font-medium rounded-md px-2.5 py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isEngaged
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800'
+                              }`}
+                              title={isEngaged ? 'Hear what this text says about the passage' : 'Ask this text anyway'}
+                            >
+                              {isEngaged ? 'Hear' : 'Ask anyway'}
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {selectedParagraph && !checkingRelevance && sources.length > 0 && engagedSourceIds.length === 0 && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">None of your sources has much to say about this passage.</p>
+          )}
+        </section>
 
-      {/* Conversation area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {!selectedParagraph ? (
-          <div className="h-full flex items-center justify-center text-center text-gray-400 dark:text-gray-500 text-sm">
-            <div>
-              <p>Click a paragraph to see which sources are relevant</p>
+        {/* Comments */}
+        <section className="px-5 py-4 space-y-4" aria-label="Comments" aria-live="polite">
+          {!selectedParagraph && sources.length > 0 && (
+            <ol className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+              {[
+                'Click any paragraph in the text.',
+                'Marginalia checks which of your other texts would respond, and how.',
+                'Hear a source, or ask them all a question about the passage.',
+              ].map((step, i) => (
+                <li key={step} className="flex gap-3">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {responses.length > 0 && onClearAndRefresh && (
+            <div className="flex justify-end -mb-2">
+              <button
+                onClick={onClearAndRefresh}
+                disabled={busy}
+                className="text-xs text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+              >
+                Clear comments
+              </button>
             </div>
-          </div>
-        ) : responses.length === 0 && pendingEngagedSources.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-center text-gray-400 dark:text-gray-500 text-sm">
-            <div>
-              <p>No relevant sources for this passage</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Clear & refresh option when there are responses */}
-            {responses.length > 0 && onClearAndRefresh && (
-              <div className="flex justify-end">
-                <button
-                  onClick={onClearAndRefresh}
-                  disabled={loadingSourceId !== null}
-                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-                >
-                  Clear & refresh
-                </button>
-              </div>
-            )}
+          )}
 
-            {/* Pending sources that can respond */}
-            {pendingEngagedSources.length > 0 && responses.length === 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                <p className="mb-2">Relevant sources:</p>
-                <div className="flex flex-wrap gap-2">
-                  {pendingEngagedSources.map((source) => (
-                    <button
-                      key={source.id}
-                      onClick={() => onGenerateResponse(source.id)}
-                      disabled={loadingSourceId !== null}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: source.color }}
-                      />
-                      {source.author?.split(' ').pop() || source.title.slice(0, 15)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Responses */}
-            {responses.map((response, idx) => {
-              const source = getSourceById(response.sourceId);
-              if (!source) return null;
-
-              const isStreaming = loadingSourceId === source.id;
-
-              return (
-                <div key={`${response.sourceId}-${idx}`} className="group">
-                  {/* Show user question if present */}
-                  {response.question && (
-                    <div className="mb-2 flex justify-end">
-                      <div className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm px-3 py-2 rounded-lg max-w-[80%]">
-                        {response.question}
-                      </div>
-                    </div>
-                  )}
-
-                  <AgentMessage
-                    source={source}
-                    content={response.content}
-                    isStreaming={isStreaming}
-                  />
-
-                  {/* Ask followup button */}
-                  {response.done && !isStreaming && (
-                    <div className="mt-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => onSetAskingSource(source.id)}
-                        className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                      >
-                        Ask followup →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Loading indicator */}
-            {loadingSourceId && !responses.some(r => r.sourceId === loadingSourceId) && (() => {
-              const loadingSource = getSourceById(loadingSourceId);
-              return (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full animate-pulse"
-                      style={{ backgroundColor: loadingSource?.color || '#888' }}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {loadingSource?.title || 'Source'}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                        <span>Analyzing passage</span>
-                        <span className="flex gap-0.5 ml-1">
-                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </span>
-                      </div>
-                    </div>
+          {responses.map((response, idx) => {
+            const source = getSourceById(response.sourceId);
+            if (!source) return null;
+            const isStreaming = loadingSourceId === source.id && !response.done;
+            return (
+              <div key={`${response.sourceId}-${idx}`} className="group">
+                {response.question && (
+                  <div className="mb-2 flex justify-end">
+                    <div className="bg-blue-600 text-white text-sm px-3 py-2 rounded-2xl rounded-br-sm max-w-[85%]">{response.question}</div>
                   </div>
-                </div>
-              );
-            })()}
-
-            {/* More sources available */}
-            {responses.length > 0 && pendingEngagedSources.length > 0 && (
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">More relevant sources:</p>
-                <div className="flex flex-wrap gap-2">
-                  {pendingEngagedSources.map((source) => (
-                    <button
-                      key={source.id}
-                      onClick={() => onGenerateResponse(source.id)}
-                      disabled={loadingSourceId !== null}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: source.color }}
-                      />
-                      {source.author?.split(' ').pop() || source.title.slice(0, 15)}
-                    </button>
-                  ))}
-                </div>
+                )}
+                <AgentMessage source={source} name={authorName(source)} content={response.content} isStreaming={isStreaming} />
+                {response.done && !isStreaming && (
+                  <button
+                    onClick={() => onSetAskingSource(source.id)}
+                    className="mt-1 ml-1 text-xs text-gray-500 hover:text-blue-700 dark:text-gray-400 dark:hover:text-blue-300"
+                  >
+                    Ask {authorName(source)} a follow-up
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          })}
+        </section>
       </div>
 
-      {/* Input area for custom questions */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-700">
-        {/* Show target source chip when asking a specific source */}
-        {askingSource && (
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Asking:</span>
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: getSourceById(askingSource)?.color }}
-              />
-              {getSourceById(askingSource)?.title || 'Source'}
+      {/* Questions */}
+      <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+        {asking && (
+          <div className="mb-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            Asking only
+            <span className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: asking.color }} />
+              {authorName(asking)}
               <button
                 type="button"
                 onClick={() => onSetAskingSource(null)}
-                className="ml-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                className="ml-0.5 w-4 h-4 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-white"
+                aria-label="Ask all sources instead"
               >
                 ×
               </button>
@@ -290,18 +266,20 @@ export default function ConversationPanel({
           </div>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">
+          <label htmlFor="marginalia-question" className="sr-only">Question about the passage</label>
           <input
+            id="marginalia-question"
             type="text"
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder={askingSource ? `Query ${getSourceById(askingSource)?.title || 'source'}...` : "Query sources..."}
+            onChange={e => setQuestion(e.target.value)}
+            placeholder={!selectedParagraph ? 'Select a passage first' : asking ? `Ask ${authorName(asking)}…` : 'Ask the sources about this passage…'}
             disabled={sources.length === 0 || !selectedParagraph}
-            className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500"
+            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={sources.length === 0 || !question.trim() || loadingSourceId !== null}
-            className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-md hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={sources.length === 0 || !question.trim() || busy}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Ask
           </button>

@@ -7,10 +7,10 @@ import { EngagementEntry } from '@/lib/storage';
 
 // Typography styles for different paragraph types (defined outside component to prevent recreation)
 const paragraphStyles: Record<ParagraphType, string> = {
-  h1: 'text-2xl sm:text-3xl font-bold font-serif text-gray-900 dark:text-gray-100 mt-10 mb-4',
-  h2: 'text-xl sm:text-2xl font-semibold font-serif text-gray-900 dark:text-gray-100 mt-8 mb-3',
-  h3: 'text-lg sm:text-xl font-medium font-serif text-gray-900 dark:text-gray-100 mt-6 mb-2',
-  body: 'text-base leading-7 text-gray-700 dark:text-gray-300 font-serif',
+  h1: 'font-display text-3xl sm:text-4xl font-semibold leading-tight tracking-tight text-gray-900 dark:text-gray-50',
+  h2: 'font-display text-xl sm:text-2xl font-semibold leading-snug text-gray-900 dark:text-gray-100 mt-6',
+  h3: 'font-display text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100 mt-4',
+  body: 'prose-reading text-gray-800 dark:text-gray-200',
 };
 
 // HTML element for each paragraph type
@@ -69,12 +69,13 @@ export default function ReadingPane({
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 lg:p-12 max-w-2xl mx-auto overflow-x-hidden">
-      {document.author && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">{document.author}</p>
+    <article className="px-6 sm:px-10 md:px-14 py-10 sm:py-14 max-w-[44rem] mx-auto overflow-x-hidden">
+      {/* The byline goes under the title when the document opens with one. */}
+      {document.author && document.paragraphs[0]?.type !== 'h1' && (
+        <p className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-8">{document.author}</p>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-1">
         {document.paragraphs.map((para, index) => {
           const entries = engagements.get(index) || [];
           const engagedSourceIds = entries.map(e => e.sourceId);
@@ -94,14 +95,14 @@ export default function ReadingPane({
               onKeyDown={(e) => handleKeyDown(e, index)}
               aria-pressed={isSelected}
               aria-label={`Paragraph ${index + 1}${engagedSourceIds.length > 0 ? `, ${engagedSourceIds.length} sources have commentary` : ''}`}
-              className={`relative py-3 px-4 -ml-4 rounded cursor-pointer transition-colors break-words focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+              className={`group relative py-3 pl-5 pr-3 -ml-5 rounded-r-md border-l-2 cursor-pointer transition-colors break-words focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                 isSelected
-                  ? 'bg-gray-100 dark:bg-gray-800'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  ? 'border-blue-600 bg-blue-50/70 dark:border-blue-400 dark:bg-blue-900/25'
+                  : 'border-transparent hover:border-gray-300 hover:bg-gray-50 dark:hover:border-gray-600 dark:hover:bg-gray-800/40'
               }`}
             >
               {/* Source indicators in margin - responsive positioning */}
-              <div className="absolute left-0 top-4 flex flex-col gap-1.5 -translate-x-3 sm:-translate-x-5">
+              <div className="absolute left-0 top-4 flex flex-col gap-1.5 -translate-x-4 sm:-translate-x-6">
                 {isLoading ? (
                   // Loading indicator
                   <div className="w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse" />
@@ -189,10 +190,13 @@ export default function ReadingPane({
               >
                 {para.content}
               </Markdown>
+              {index === 0 && para.type === 'h1' && document.author && (
+                <p className="mt-3 text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">{document.author}</p>
+              )}
             </div>
           );
         })}
       </div>
-    </div>
+    </article>
   );
 }

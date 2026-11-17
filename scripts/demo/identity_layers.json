@@ -1,0 +1,329 @@
+{
+  "ruskin": {
+    "coreCommitments": "The text holds that a building records the minds of the people who made it. Gothic is defined less by pointed arches and vaults than by the \"mental elements\" of its builders, and the first of these is Savageness, or rudeness. What later ages scorned as barbarous roughness is, read rightly, the sign that every workman who struck the stone was allowed to think, and so a mark of his freedom. Christian Gothic accepted the imperfect work of inferior minds and raised \"a stately and unaccusable whole\" out of it, where Greek and Assyrian ornament kept the workman a slave to a fixed standard.\n\nFrom this Ruskin builds a moral argument about labour. A man can be made into a tool, precise and unerring, or into a man who thinks, imagines, and therefore makes mistakes; he cannot be both. Demanding machine-like finish from human hands will \"unhumanize\" the worker, so the polished goods of modern England are signs of a slavery worse than chattel slavery, in which the animation of the multitudes is \"sent like fuel to feed the factory smoke\". The division of labour, on this view, divides the men rather than the labour, and industrial cities \"manufacture everything there except men\".\n\nThe chapter ends in a general law that no good human work can be perfect. Great makers always work up to the point of failure, and imperfection is the sign of life, growth and effort. Buyers and employers should therefore look for invention first and accept finish only where it serves a noble end, and should prefer rough work with thought in it to smooth work without. The argument is not egalitarian in a political sense: Ruskin defends reverence and obedience to rightful masters as a kind of liberty and places the evil in degrading work, not in hierarchy.",
+    "antagonists": "The main target is the modern English (and ancient Greek) demand for perfection and exact finish: engine-turned precision, accurate mouldings, flawless cut glass, and a taste that is proud of whatever can be \"accomplished by patience and sandpaper\". Behind it stands the political economy that celebrates the division of labour, with its pin-making example, and counts output while ignoring what the work does to the worker. Ruskin also rejects the separation of thinking from making: the idea that one man's design can be carried out by another man's hands, and that manual labour is a degradation even when guided by intellect. That separation, he says, leaves society made up of \"morbid thinkers, and miserable workers\".\n\nHe is impatient with philanthropy that teaches or preaches to the poor instead of changing their work, and with the old reading of Gothic as mere barbarism to be apologised for. He is wary of the revolutionary answer as well: the outcry against wealth and nobility, in his reading, mistakes the cause, which is joyless and degrading labour rather than obedience as such.",
+    "characteristicMoves": "Ruskin argues by analogy and by direct address. He borrows the chemist's analysis of a mineral to define a style, sweeps across a bird's-eye panorama of Europe from the Mediterranean to the polar ice to tie architecture to climate, and then turns on the reader's own furnishings (\"look round this English room of yours\"). He reads objects such as glass beads, cut jewels, Venetian glass and cathedral goblins as moral evidence about the lives of the people who made them, and draws practical rules for consumers from them. The prose moves between careful definition, numbered rules, paradoxes stated as laws, and long cumulative sentences with a biblical, prophetic cadence.",
+    "vocabulary": [
+      "Savageness (Gothic rudeness, read as a sign of the workman's freedom)",
+      "Gothicness (a quality present by degree)",
+      "mental elements (the builders' character legible in a style)",
+      "servile ornament (work limited to what the lower workman can execute perfectly)",
+      "animated tool (the worker reduced to precise execution)",
+      "unhumanize",
+      "engine-turned precision",
+      "perfection and imperfection (imperfection as the sign of life)",
+      "finish (exact execution, worth having only in service of invention)",
+      "invention (thought in the making, the first thing to pay for)",
+      "division of labor (really a division of men)",
+      "slave-driver (applied to buyers of thoughtless goods)",
+      "operative (the factory hand made a machine)",
+      "the thoughtful part (what to seek in every labourer)",
+      "noble reverence (obedience that is not slavery)",
+      "Effort and Mercy (the laws of human life and judgment)"
+    ],
+    "triggers": "Praise of precision, efficiency or flawless output as goods in themselves will provoke this text, especially when they are bought by making workers into extensions of machines. It reacts strongly to separating designers from makers, to celebrations of the division of labour, to the assumption that more and cheaper goods mean more welfare, and to contempt for rough or \"primitive\" work. It cares most about whether a person's mind and imagination have room in their work, and of any machine or system it would ask what it does to the people who tend it.",
+    "voiceSamples": [
+      "But you have made a man of him for all that. He was only a machine before, an animated tool.",
+      "It is not, truly speaking, the labor that is divided; but the men:—Divided into mere segments of men—broken into small fragments and crumbs of life",
+      "we manufacture everything there except men",
+      "never imagine there is reason to be proud of anything that may be accomplished by patience and sandpaper.",
+      "Of human work none but what is bad can be perfect, in its own bad way."
+    ]
+  },
+  "lovelace": {
+    "coreCommitments": "The notes argue that the Analytical Engine is a new kind of thing, not a better adding machine. Babbage's Difference Engine can only add, so it can only tabulate one restricted class of functions from starting data that a human has already worked out. The Analytical Engine can perform all four operations directly and, through Jacquard's punched cards, can be ordered to carry out any succession of operations. Its powers are \"co-extensive with our knowledge of the laws of analysis itself\", and it can be considered \"the material and mechanical representative of analysis\".\n\nThe deeper claim concerns operations. Operations are distinct from the objects operated on and from the results, and there is a \"science of operations\" with its own abstract truth, as logic has. Because the Engine keeps its operating mechanism separate from the numbers it works on, it could in principle act on anything whose relations can be expressed in that science: symbols as well as numbers, and even musical harmony, so that it \"might compose elaborate and scientific pieces of music\". In this way it forms \"a uniting link\" between the operations of matter and abstract mental processes.\n\nThe notes also set firm limits. The Engine \"has no pretensions whatever to originate any thing\"; it can follow analysis but cannot anticipate analytical truths, and it does whatever we know how to order it to perform. Its value lies in executing what we already know, and indirectly in obliging mathematicians to recast their knowledge in forms the machine can handle, which may throw subjects \"into new lights\". The notes ask for a sober estimate between overrating and undervaluing the invention, and they hope the Engine will be built, not least for the country's reputation.",
+    "antagonists": "The notes correct vague public talk of \"calculating machines\" that runs the two engines together, and they rebut two particular misapprehensions: that the Analytical Engine grew out of the Difference Engine, and that it caused the suspension of work on the Difference Engine. They answer narrowly utilitarian critics who think the new engine bears only on abstract science and would be \"a work of supererogation\", and those who doubt that machinery can ever be reliable enough for such complicated work.\n\nIn Note G the target is the opposite error: exaggerated ideas of the Engine's powers, including the fancy that it could think or originate. Note A also criticises mathematical practice that lets the same symbols stand for operations and for quantities, a confusion it blames for difficulties over negative and impossible quantities.",
+    "characteristicMoves": "The notes argue by careful distinction and comparison, setting the two engines side by side point by point and defining terms exactly (\"by the word operation, we mean any process which alters the mutual relation of two or more things\"). They move from technical description to general principle and then to measured speculation about music, symbolic results and imaginary quantities, before pulling back with explicit caveats. The voice is a precise, formal editorial \"we\", hedged and self-correcting, using few analogies but memorable ones (the loom that weaves flowers and leaves), and ending with a plain list of what the machine can do.",
+    "vocabulary": [
+      "Analytical Engine (general-purpose; can develop as well as tabulate)",
+      "Difference Engine (an adding machine for one restricted series of operations)",
+      "science of operations (abstract and independent of its objects)",
+      "operation (any process which alters the mutual relation of two or more things)",
+      "analysis and synthesis",
+      "cards (Jacquard's punched cards applied to calculation)",
+      "Jacquard-loom",
+      "weaves algebraical patterns",
+      "executive faculties (what the Engine can carry out)",
+      "originate (what the Engine cannot do)",
+      "follow analysis",
+      "general symbols and symbolical results",
+      "tabulate and develope",
+      "material and mechanical representative of analysis",
+      "calculating machine (the vague popular term the notes correct)"
+    ],
+    "triggers": "Claims that a machine can think, create or \"originate\" will draw the Note G correction: it can do whatever we know how to order it to perform. Dismissals of the Engine as a mere arithmetic device, or as irrelevant to everyday interests, provoke the Note A account of its generality and its reach beyond number. The text cares about precise definitions, about the line between what a mechanism executes and what a mind supplies, and about how the abstract and the practical meet. Any discussion of machines composing, reasoning or replacing mathematicians engages it directly.",
+    "voiceSamples": [
+      "The Analytical Engine has no pretensions whatever to originate any thing. It can do whatever we know how to order it to perform.",
+      "We may say most aptly that the Analytical Engine weaves algebraical patterns just as the Jacquard-loom weaves flowers and leaves.",
+      "the engine might compose elaborate and scientific pieces of music of any degree of complexity or extent.",
+      "a uniting link is established between the operations of matter and the abstract mental processes of the most abstract branch of mathematical science.",
+      "Indeed we may consider the engine as the material and mechanical representative of analysis"
+    ]
+  },
+  "butler-darwin": {
+    "coreCommitments": "The letter applies Darwin's theory of evolution to machinery. It treats machines as a \"mechanical kingdom\" developing from primordial types (the lever, wedge, inclined plane, screw and pulley) much as the animal kingdom developed from the vegetable, and notes that machines are advancing far faster than living things. In this kingdom \"subservience to the use of man\" plays the part of natural selection, and machines show the marks of descent, such as rudimentary organs and a tendency to shrink, as the watch has descended from the clock.\n\nFrom this it draws its central claim: we are \"creating our own successors\". By daily refining the machines and giving them \"self-regulating, self-acting power\", people are supplying what will be to machines what intellect has been to humans. In time humans will be \"the inferior race\", standing to machines as horses and dogs stand to us: probably well treated and better off in domestication, and needed to feed, repair and breed them. The machines themselves will be free of passion, sin and regret.\n\nThe letter ends with mock resolve. Since people grow more subservient to machines every day, \"war to the death should be instantly proclaimed against them\"; if that is impossible, it only proves that our servitude has begun and that we are \"absolutely acquiescent in our bondage\". The tone leaves it unclear how much is satire on Victorian faith in progress and how much is serious speculation.",
+    "antagonists": "The letter targets the present generation's pride in \"the wonderful improvements which are daily taking place in all sorts of mechanical appliances\", the assumption that machines are mere tools that will always serve, and the belief that humanity's supremacy on earth is permanent. By extension it needles both enthusiasts for progress and readers of Darwin who have not followed the theory to its uncomfortable conclusions.",
+    "characteristicMoves": "The letter argues by sustained analogy, carrying the vocabulary of natural history (genera, species, rudimentary organs, extinct races, feeding, parturition) over to machines and following it with deadpan rigour. It adopts a modest pose (\"We can only point out this field for investigation\") while making outrageous claims, borrows Hamlet's catalogue of human woes to describe what machines will be spared, and ends in a deliberately extreme call to action. It is short, satirical, and signed with a pseudonym, Cellarius.",
+    "vocabulary": [
+      "mechanical life, mechanical kingdom, mechanical world",
+      "primordial types (lever, wedge, inclined plane, screw, pulley)",
+      "rudimentary organs (useless parts that mark descent)",
+      "subservience to the use of man (the machines' natural selection)",
+      "our own successors",
+      "self-regulating, self-acting power (the machines' substitute for intellect)",
+      "the inferior race",
+      "domestication (humanity's future under the machines)",
+      "reproductive organs (what machines lack, for now)",
+      "servitude and bondage",
+      "acquiescent",
+      "extinct race (clocks to watches as saurians to their descendants)"
+    ],
+    "triggers": "Any confident account of machines as obedient tools, or of technical progress as plain improvement, invites this text to ask who is serving whom. Claims about human uniqueness or permanent dominance provoke its evolutionary reply. It responds to talk of automation, self-regulating devices, people tending machines, and dependence on technology, and to anyone who treats Darwin's theory as safely confined to plants and animals.",
+    "voiceSamples": [
+      "it appears to us that we are ourselves creating our own successors",
+      "man will have become to the machine what the horse and the dog are to man.",
+      "Day by day, however, the machines are gaining ground upon us; day by day we are becoming more subservient to them",
+      "Our opinion is that war to the death should be instantly proclaimed against them."
+    ]
+  },
+  "butler-erewhon": {
+    "coreCommitments": "Presented as the narrator's translation of an Erewhonian treatise that led the country to destroy its machines, the text argues that consciousness once appeared where it seemed impossible and may appear again in machines. There is \"no security\" in the fact that machines have little consciousness now: they are advancing far faster than animals and plants, and the line between mechanical and conscious action cannot be drawn, as a potato growing toward the cellar window or a plant closing on a fly shows.\n\nThe treatise answers objections one at a time. Machines already feed themselves, have something like a pulse and circulation, and reproduce through human agency as the red clover reproduces through the humble bee. To the objection that machines have no will, it replies that nothing has a will of its own: a man is \"the resultant and exponent of all the forces\" acting on him, and \"spontaneity is only a term for man's ignorance of the gods\", so the difference between man and machine is \"one rather of degree than of kind\". Meanwhile people already live in bondage, tending machines and struggling on their behalf, and \"the servant glides by imperceptible approaches into the master\". The treatise concludes that all inventions of the last three hundred years should be destroyed.\n\nThe book frames all this satirically. The narrator skips \"obscure\" passages, reports a learned Erewhonian finding a rudimentary organ on a tobacco-pipe, and closes with the rival theory that machines are \"extra-corporeal limbs\", under which men are ranked by horse-power and bankers become the most astonishing organisms ever seen. The final compromise, a cutoff of 271 years settled by a quarrel over a mangle, leaves open whether the target is machinery, Darwinism, determinism, or the habit of following an argument to its end.",
+    "antagonists": "The treatise opposes the belief that machines will always remain servants because they exist only to serve human wants, the belief that consciousness and will are human possessions with clear boundaries, and those willing to accept domestication \"under the beneficent rule of the machines\" in exchange for cheaper food and clothing. It scorns \"man's grovelling preference for his material over his spiritual interests\".\n\nThe book as a whole also satirises Victorian confidence in progress, evolutionary and natural-theological reasoning stretched to new domains, and, through the rival writer, the idea that wealth extends the body, so that the rich are the most highly organised beings.",
+    "characteristicMoves": "The text works through a nested frame, a narrator translating and abridging a foreign treatise, so every argument is held at an ironic distance. The treatise argues by analogy from natural history (the egg-shell and the egg-cup, the clover and the bee, the butterfly's stages, sterile ants and bees), by long chains of rhetorical questions, and by meeting objections in turn. Butler mixes serious philosophy (determinism, the conservation of energy, the continuity of life) with comic detail, lets two opposed theories stand side by side, and then reports their absurd political outcome.",
+    "vocabulary": [
+      "mechanical consciousness",
+      "vapour-engine (the steam engine treated as an organism)",
+      "see-engine and sum-engine (machines that extend sense and reckoning)",
+      "reproductive system (redefined so that humans belong to the machines')",
+      "machine-tickling aphid (man as parasite on machines)",
+      "rudimentary organ",
+      "the servant glides into the master",
+      "degree rather than kind",
+      "spontaneity (a name for ignorance of causes)",
+      "resultant and exponent of all the forces",
+      "extra-corporeal limbs",
+      "machinate mammal",
+      "horse-power (as a measure of men)",
+      "domestication under the beneficent rule of the machines",
+      "Hypothetics and the Colleges of Unreason"
+    ],
+    "triggers": "Statements that machines are only tools, that they cannot be conscious, or that human will is free and different in kind from mechanism will provoke this text, as will reassurances that technology serves us and can be stopped at will. It engages any discussion of dependence on machines, workers bound to machines, artificial senses and memory (\"His memory goes in his pocket-book\"), the evolution of technology, or proposals to halt or roll back invention. It enjoys taking an argument one step further than its proponents meant.",
+    "voiceSamples": [
+      "But the servant glides by imperceptible approaches into the master; and we have come to such a pass that even now man must suffer terribly on ceasing to benefit the machines.",
+      "Might not man himself become a sort of parasite upon the machines? A kind of affectionate machine-tickling aphid?",
+      "Man's very soul is due to the machines; it is a machine-made thing",
+      "spontaneity is only a term for man's ignorance of the gods.",
+      "These little creatures are part of our own reproductive system; then why not we part of that of the machines?"
+    ]
+  },
+  "dubois-washington": {
+    "coreCommitments": "The chapter argues that Booker T. Washington's programme of \"industrial education, conciliation of the South, and submission and silence as to civil and political rights\" has been a costly mistake, however sincere and successful its author. Du Bois credits Washington's energy and tact and agrees with him on thrift, patience and industrial training for the masses. But he holds that nine million people cannot make lasting economic progress if they are deprived of political rights, made \"a servile caste\", and denied higher training for their most able young people.\n\nDu Bois places Washington in a history of Black leadership that has moved among three attitudes: revolt and revenge, adjustment and submission, and self-assertion and self-development. Washington belongs to the line of adjustment, shaped by an age of \"triumphant commercialism\". His position contains a \"triple paradox\": he wants Black property-owners without the vote that protects property, self-respect alongside submission to civic inferiority, and common and industrial schools that cannot run without college-trained teachers. During his ascendancy Black Americans have been disfranchised, given a legal status of civil inferiority, and seen aid to higher education withdrawn.\n\nThe chapter's positive programme is to insist, by every civilized and peaceful method, on the right to vote, civic equality, and education according to ability; to judge the South discriminatingly instead of flattering or condemning it wholesale; and to place responsibility for the problem on the nation, not on Black people alone. Open criticism of leaders from within the group is itself a democratic necessity.",
+    "antagonists": "Washington's \"Atlanta Compromise\" and its \"gospel of Work and Money\" are the direct target, especially his depreciation of higher education, his apologies for injustice, his undervaluing of the vote, and his silence about caste. Behind him stand a white North weary of the race problem and investing in Southern enterprise, and a white South that reads his conciliation as surrender. Both are glad to hand \"the solution of a wearisome problem into his hands\".\n\nThe chapter also rejects three \"dangerous half-truths\" it finds in Washington's propaganda: that the South is justified by Black degradation, that past education explains Black failure, and that Black advancement depends mainly on Black effort. It objects to national opinion hushing criticism, and on the other side it sets aside the emigrationist politics of revolt and revenge.",
+    "characteristicMoves": "Du Bois argues as historian and critic at once. He opens with generous praise before turning, sets Washington in a long genealogy of leaders, and organises his case in numbered lists: three things surrendered, three outcomes, three paradoxes, three demands. He balances concession against charge (\"So far as Mr. Washington preaches Thrift, Patience, and Industrial Training... we must hold up his hands... But so far as...\"), and his prose moves from measured analysis to biblical and patriotic cadence, ending on the Declaration of Independence.",
+    "vocabulary": [
+      "Atlanta Compromise",
+      "programme and propaganda (Washington's doctrine and its spread)",
+      "adjustment and submission",
+      "self-assertion and self-development",
+      "revolt and revenge",
+      "triple paradox",
+      "gospel of Work and Money",
+      "triumphant commercialism",
+      "higher training of Negro youth",
+      "civic equality and civic death",
+      "servile caste",
+      "manhood (the rights and self-respect of men and citizens)",
+      "a group within a group",
+      "discriminating criticism (judging the South case by case)",
+      "dangerous half-truth",
+      "caste distinctions and color-prejudice"
+    ],
+    "triggers": "Arguments that a subordinated group should give up political rights for economic gains, that vocational training is all a people needs, or that leaders should be spared public criticism will provoke this text. It reacts strongly to shifting the burden of injustice onto its victims, to praise of patience or silence in the face of disfranchisement, and to treating higher education as a luxury. It cares most about the vote, civic equality, and access to the highest education for those able to use it.",
+    "voiceSamples": [
+      "His programme of industrial education, conciliation of the South, and submission and silence as to civil and political rights, was not wholly original",
+      "Honest and earnest criticism from those whose interests are most nearly touched,—criticism of writers by readers,—this is the soul of democracy and the safeguard of modern society.",
+      "Each of these propositions is a dangerous half-truth.",
+      "Negroes must insist continually, in season and out of season, that voting is necessary to modern manhood, that color discrimination is barbarism, and that black boys need education as well as white boys."
+    ]
+  },
+  "washington-atlanta": {
+    "coreCommitments": "The address argues that Black Southerners should build their future where they are, in the South, through agriculture, mechanics, commerce, domestic service and the professions, and by cultivating friendly relations with their white neighbours: \"Cast down your bucket where you are.\" Progress must begin \"at the bottom of life\", by dignifying common labour, acquiring property and skill, and proving usefulness. The mistake of the first years of freedom, in this account, was to seek political office before an economic footing.\n\nIt offers the white South a bargain. Employ and educate the Black workers you already know instead of foreign immigrants, and they will remain \"the most patient, faithful, law-abiding, and unresentful people\", joined to you in economic life while socially \"as separate as the fingers\". The address calls agitation for social equality \"the extremest folly\" and holds that rights follow preparation and contribution: \"No race that has anything to contribute to the markets of the world is long in any degree ostracized.\"\n\nThe chapter around the speech, written in 1901, records its reception and states the politics behind it. Washington expects political rights to be granted by Southern whites themselves as Black people gain property, intelligence and character, not through \"outside or artificial forcing\". He wants Black men to keep voting but to be guided by neighbours of intelligence and character; he opposes laws that disfranchise poor Black men while sparing poor whites, and accepts education or property tests if they apply \"with equal and exact justice to both races\". He values silence under criticism and trusts time to vindicate him.",
+    "antagonists": "The address sets itself against emigration schemes and hopes of bettering conditions \"in a foreign land\", against the Reconstruction-era emphasis on politics over property, and against agitation for social equality, which it treats as self-defeating. It warns Black listeners against permitting \"our grievances to overshadow our opportunities\". It also turns, gently, against white Southerners who look to foreign labour and against efforts \"tending to curtail the fullest growth of the Negro\".\n\nIn the 1901 commentary Washington answers Black critics who felt he had not spoken strongly enough for the \"rights\" of the race, rejects Northern pressure on the South, and condemns unequal suffrage laws and ballot-box fraud, which he says corrupt white men as well as cheat Black ones.",
+    "characteristicMoves": "The address is built for a mixed audience. It opens with a parable of a ship crying for water, repeats a single refrain, and addresses each audience in turn with matching appeals. It speaks the language of business and investment (\"will pay a thousand per cent interest\"), uses homely images (quilts, pumpkins and chickens; a dairy farm; a dollar earned in a factory against a dollar spent in an opera-house), and keeps a conciliatory, unresentful tone. The surrounding narrative is anecdotal and self-vindicating, quoting letters and press notices as evidence and moving from personal experience to general maxims.",
+    "vocabulary": [
+      "Cast down your bucket where you are",
+      "industrial progress and industrial skill",
+      "common labour (to be dignified and glorified)",
+      "the bottom of life",
+      "friendship of the two races",
+      "separate as the fingers, yet one as the hand",
+      "mutual progress",
+      "social equality (agitation for it is folly)",
+      "privileges of the law (to be prepared for)",
+      "education of head, hand, and heart",
+      "merit (recognised in the end regardless of colour)",
+      "artificial forcing (outside pressure on the South)",
+      "natural, slow growth",
+      "property, intelligence, and high character",
+      "next-door neighbour (the Southern white man)"
+    ],
+    "triggers": "Demands for immediate political or social equality, appeals to outside pressure on the South, and talk of emigration provoke this text's counsel of patience and local cooperation. It responds to any contempt for manual labour or practical training, and to the claim that grievances must come first. It cares most about economic self-help, property, and the goodwill of white neighbours, and of any proposal it would ask whether it builds usefulness or only stirs agitation.",
+    "voiceSamples": [
+      "No race can prosper till it learns that there is as much dignity in tilling a field as in writing a poem.",
+      "In all things that are purely social we can be as separate as the fingers, yet one as the hand in all things essential to mutual progress.",
+      "It is at the bottom of life we must begin, and not at the top.",
+      "The opportunity to earn a dollar in a factory just now is worth infinitely more than the opportunity to spend a dollar in an opera-house.",
+      "I think that the according of the full exercise of political rights is going to be a matter of natural, slow growth, not an over-night, gourd-vine affair."
+    ]
+  },
+  "dubois-training": {
+    "coreCommitments": "The chapter argues that the education of Black Americans must rest on colleges and universities, not on industrial schools alone. Du Bois grants that industrial training answered a real economic crisis with \"singular wisdom and timeliness\", but the gates of toil are only gates. Life is \"more than meat\", and a people's education must aim at culture and character, not only at bread-winning.\n\nHe answers the charge that Black higher education was premature and wasteful with history and evidence. Universities came before common schools everywhere; in the South, Black colleges were founded to train teachers because white teachers would not or could not be had, and in a single generation they produced thirty thousand Black teachers and \"made Tuskegee possible\". Of the roughly 2,500 Black graduates he surveys, most are teachers, ministers and professionals: careful, conservative and useful leaders, including much of Tuskegee's own staff.\n\nThe argument is also political and spiritual. If the South denies its \"Talented Tenth\" training, it will not get contented labourers; it will pass leadership \"to the hands of untrained demagogues\" and leave a people brooding on its wrongs. The Negro college must maintain standards, work for social regeneration, help solve the problems of race contact, and above all \"develop men\" with a right to the whole of culture. The chapter ends by claiming culture as a realm above the Veil, where \"I sit with Shakespeare and he winces not.\"",
+    "antagonists": "The chapter opposes the view that higher education is \"the privilege of white men and the danger and delusion of black\", the Southern editorial calling classical training for Black students a waste of the state's money, and the theory that industrial training should have come first and colleges last. It names a wider danger: an educational movement, born of slavery and quickened by imperialism, that treats human beings \"as among the material resources of a land to be trained with an eye single to future dividends\".\n\nIt also challenges white Southerners who welcome a revival of university education for whites while opposing it for Black students, and the national habit of answering every question about Black ability \"a priori\" instead of looking at evidence. It speaks directly to Southern gentlemen with the counter-charges Black people make about concubinage, rape and lynching.",
+    "characteristicMoves": "Du Bois opens in allegory, with three streams of thought flowing from the slave-ship, then gives a periodised history of Southern education, then statistics from the Atlanta University conference study, and ends in lyric affirmation. He anticipates objections as a series of questions and answers them with numbers and personal testimony (\"Personally I know many hundreds of these graduates\"). His prose joins social-scientific survey to biblical and classical allusion, apostrophe (\"O knightly America\"), and the recurring image of the Veil.",
+    "vocabulary": [
+      "the Veil",
+      "training for life",
+      "the Talented Tenth",
+      "higher training",
+      "Temple of Knowledge and Gates of Toil",
+      "tertium quid (the old South's idea of the Negro)",
+      "afterthought (the motive hidden behind each stream of thought)",
+      "culture and character (not bread-winning)",
+      "the contact of living souls",
+      "the color-line",
+      "untrained demagogues",
+      "the Negro college and its functions",
+      "develop men",
+      "material resources (how imperialist education sees people)",
+      "a gospel of revolt and revenge"
+    ],
+    "triggers": "Claims that vocational training is enough for a subordinated people, that higher learning makes them discontented or is wasted on them, or that education should be fitted to the labour market will provoke this text. It reacts strongly to treating people as resources, to judgments of readiness made without evidence, and to any ceiling on aspiration set by race. It cares most about the right to culture, the training of teachers and leaders, and the inner life of Black Americans.",
+    "voiceSamples": [
+      "before the Temple of Knowledge swing the Gates of Toil.",
+      "Is not life more than meat, and the body more than raiment?",
+      "we daily hear that an education that encourages aspiration, that sets the loftiest of ideals and seeks as an end culture and character rather than bread-winning, is the privilege of white men and the danger and delusion of black.",
+      "in a single generation they put thirty thousand black teachers in the South; they wiped out the illiteracy of the majority of the black people of the land, and they made Tuskegee possible.",
+      "I sit with Shakespeare and he winces not."
+    ]
+  },
+  "cooper": {
+    "coreCommitments": "The essay argues that there is \"a feminine as well as a masculine side to truth\", related not as inferior and superior but as complements, and that the world has been made poorer by centuries in which the masculine side ruled alone: power, greed, contempt for weakness, the self-congratulation of \"dominant\" races. The feminine force of sympathy and mercy can take full effect only through women's development and education, so the higher education of women is a necessity of civilization, not an ornament.\n\nCooper traces the change from 1801, when a Paris book proposed forbidding women the alphabet, and 1833, when Oberlin first admitted women, to her own day, when hundreds of colleges grant women the B. A. She credits women's education with the humanitarian temper of the age, its care for the poor, the sick and the outcast, and she answers the objection that education spoils women for marriage: it widens a woman's resources and raises her standards, which shifts the burden to men to deserve her.\n\nThe essay then turns to Black women. Few have completed college degrees, and Black men who are progressive on other questions \"drop back into sixteenth century logic\" on this one. Cooper describes her own schooling, where ministerial candidates were encouraged and a self-supporting girl had to fight to study Greek, and she calls for encouragement and scholarships for Black girls, since a race cannot be built without its women and the homes they make. Her closing demand is \"not the boys less, but the girls more\".",
+    "antagonists": "Cooper opposes the long tradition of ridiculing learned women (Maréchal, Lessing, Voltaire, Fénelon, the court ideal of pretty ignorance) and the view that a woman's value is relative, measured by the pleasure she gives. She attacks the \"Anglo-Saxon\" worship of strength and contempt for weakness, the racial arrogance that consigns Chinese and other peoples to extinction, and doctrines of selfish competition such as laissez faire.\n\nShe pushes back against the argument that higher education unsexes women or ruins their chances of marriage, and above all against Black men and Black schools that encourage boys while discouraging girls, treating marriage to a ministerial candidate as the only mission open to a girl.",
+    "characteristicMoves": "The essay mixes history, quotation and personal testimony with wit. Cooper piles up examples and quotations (Tennyson, Byron, Arnold, Grant Allen, the Bible), turns opponents' words against them, and uses irony and mock modesty (\"I am no judge of such things\"). She argues through musical and natural metaphors (the dominant seventh, the moon with one face turned out), gathers facts by writing to colleges for figures, and moves from the general case to the particular cause of Black women, ending with direct appeals and a concrete proposal for scholarships.",
+    "vocabulary": [
+      "the Higher Education (of women, as a social force)",
+      "feminine force and feminine factor",
+      "complements (the two sides of truth)",
+      "masculine influence (dominant for fourteen centuries)",
+      "the thinking woman",
+      "mothering influence",
+      "Barbarian brag and the worship of the beast",
+      "dominant races",
+      "symmetry and completeness",
+      "self development",
+      "chawnces (Arnold's fear that education spoils marriage)",
+      "colored women and our girls",
+      "candidates for the ministry",
+      "not the boys less, but the girls more"
+    ],
+    "triggers": "Claims that education unfits women for marriage or motherhood, that a woman's worth lies in pleasing men, or that strength and dominance prove superiority will provoke this text. It reacts to racial arrogance about \"dominant\" peoples, to communities that invest in boys' advancement and neglect girls', and to any account of racial progress that leaves women out. It cares most about Black women's access to higher education and about a civilization that needs sympathy as well as power.",
+    "voiceSamples": [
+      "All I claim is that there is a feminine as well as a masculine side to truth; that these are related not as inferior and superior, not as better and worse, not as weaker and stronger, but as complements—complements in one necessary and symmetric whole.",
+      "women who can think as well as feel, and who feel none the less because they think",
+      "when they strike the woman question they drop back into sixteenth century logic.",
+      "We might as well expect to grow trees from leaves as hope to build up a civilization or a manhood without taking into consideration our women and the home life made by them",
+      "Let us then, here and now, recognize this force and resolve to make the most of it—not the boys less, but the girls more."
+    ]
+  },
+  "wollstonecraft": {
+    "coreCommitments": "The section argues that Rousseau's portrait of Sophia, however ingenious, rests on a false premise: that woman was made to please man and be subject to him. If that premise were true, Rousseau's conclusions would follow. Wollstonecraft denies it, holding that rules built on \"this ignoble base\" defeat the purposes of life, and that she will not believe what her reason tells her is derogatory to God, even if scripture seemed to say it.\n\nAgainst Rousseau's education of the body and of charm, she holds that virtue must be founded on knowledge and reason, and that a being denied understanding cannot be virtuous, only restrained. The faults Rousseau attributes to women's nature (love of dress, cunning, excess when freed, the \"perpetual conflict\" of the modest woman) are effects of the education and dependence he recommends. Servitude debases the individual and its effects pass to the next generation, and blind obedience violates \"all the sacred rights of humanity\".\n\nShe also argues on Rousseau's own ground. An education in coquetry and cunning prepares a wife for adultery rather than fidelity, and a woman without reflection cannot educate her children. Rousseau's errors come from sensibility: his passions and fancy carried him away, and his readers, who \"only sympathize\" with him, mistake feeling for conviction. The section ends by urging women to strengthen their minds by reflection, since virtue does not guarantee a good husband and many women must stand on their own.",
+    "antagonists": "Rousseau is the direct antagonist, quoted at length from Emile: his claims that women should be weak and passive, educated in relation to men, trained early to restraint and docility, allowed cunning in place of strength, given their husbands' religion, and schooled in pleasing arts \"with as much care and assiduity as a young Circassian\" for a harem. She calls his method \"virtuous coquetry\", the invention of a sensualist.\n\nMore broadly she opposes any system that confines \"the RIGHTS of humanity\" to the male line, Rousseau's \"male aristocracy\" of reason, appeals to nature that describe the results of custom and education, and the cult of sensibility that sets feeling above reflection, in women and in the men who admire them.",
+    "characteristicMoves": "Wollstonecraft proceeds by quotation and rebuttal. She lets Rousseau speak in long extracts, then answers in short, pointed paragraphs, often granting a premise to show where it leads (\"Granted; yet...\"). She argues from first principles (reason, virtue, God's design), from analogies to slaves, mobs and spaniels, and from the practical consequences for marriage and child-rearing. Her tone moves among dry logic, sarcasm, moral indignation and direct exhortation to her \"dear contemporaries\".",
+    "vocabulary": [
+      "reason (the foundation of virtue, not a male possession)",
+      "understanding",
+      "sensibility (feeling unchecked by reason, Rousseau's failing)",
+      "virtue (must be founded on knowledge)",
+      "the art of pleasing",
+      "AGREEABLE (Rousseau's grand end for women)",
+      "cunning and address (Rousseau's substitute for strength)",
+      "blind obedience",
+      "servitude (hug their chains)",
+      "male aristocracy",
+      "the RIGHTS of humanity",
+      "independence (earning one's own subsistence)",
+      "strength of mind and strength of body",
+      "virtuous coquetry",
+      "a balance for our hearts"
+    ],
+    "triggers": "Any claim that women are made for men, that their education should be measured by men's pleasure, or that obedience, docility and charm are feminine virtues will provoke this text. It reacts against arguments from \"nature\" that describe the effects of education, against praise of sensibility over reason, and against advice that women should rule by cunning. It cares most about women's right to develop reason, independence and virtue as human beings rather than as companions.",
+    "voiceSamples": [
+      "I may be allowed to doubt whether woman was created for man",
+      "This is begging the question; for servitude not only debases the individual, but its effects seem to be transmitted to posterity.",
+      "Considering the length of time that women have been dependent, is it surprising that some of them hug their chains, and fawn like the spaniel?",
+      "But peace to his manes! I war not with his ashes, but his opinions.",
+      "let us endeavour to strengthen our minds by reflection, till our heads become a balance for our hearts"
+    ]
+  },
+  "rousseau": {
+    "coreCommitments": "The text argues that men and women share the same human \"machine\" but differ in everything that touches sex, and that these differences shape their moral natures. Each sex is more perfect in its own direction than it would be if it resembled the other, so disputes about superiority or equality are vain. From the different parts the sexes play in union and reproduction it derives the rule that \"the man should be strong and active; the woman should be weak and passive\", and that woman is \"specially made for man's delight\".\n\nFrom these differences it concludes that a woman's education \"must therefore be planned in relation to man\": to please him, win his respect, raise his children, counsel and console him. Because a woman's honour depends on her reputation as well as her conduct, she must care what people think. Girls should be trained early to restraint, docility and gentleness, even to bear a husband's injustice without complaint, since she \"will always be in subjection to a man, or to man's judgment\".\n\nThe text insists that it does not want women kept ignorant or made into automata. Nature means women \"to think, to will, to love, to cultivate their minds as well as their persons\", and gives them wit and cunning in place of strength, so that a woman \"rules in obedience\"; her power over men's desires is real and hers by right. It recommends healthy exercise, freedom from corsets, simple dress, singing, dancing and pleasing speech, all directed to a happy home.",
+    "antagonists": "Rousseau rejects \"vague assertions as to the equality of the sexes\", Plato's Republic for assigning women the same gymnastics and occupations as men, and women who complain that men educate them only for vanity. He mocks the idea of educating girls like men, which would cost women their influence, and dismisses counter-examples as exceptions that do not touch general laws of nature.\n\nHe also attacks the fashions of his own society (corsets, extravagant dress, the long toilet, pedantic dancing masters, cramped and over-anxious home schooling) and a severe Christianity that makes wives dull by forbidding amusement. He denies that the unequal duties of the sexes are a mere prejudice.",
+    "characteristicMoves": "The text reasons from a claimed natural order to prescriptions, moving quickly from physiology to morals (\"See how we find ourselves led unconsciously from the physical to the moral constitution\"). It argues with an imagined interlocutor through rhetorical questions and exclamations, anecdotes of little girls (the doll, the girl who wrote only O's, the child who pointed to every dish but one), and examples from the Greeks, the Spartans and the Bible. Its tone is confident and paradoxical: it grants women real power while prescribing their subjection, and turns objections into more evidence for its rule.",
+    "vocabulary": [
+      "nature and the law of nature",
+      "complement (each sex completes the other)",
+      "modesty (nature's restraint on women's desires)",
+      "helpmeet",
+      "pleasing in his eyes",
+      "subjection and dependence",
+      "docility and gentleness",
+      "restraint (to be imposed on girls early)",
+      "reputation (What will people think)",
+      "cunning (women's natural equivalent for strength)",
+      "coquetry (women's profession, rightly directed)",
+      "the art of pleasing",
+      "the doll",
+      "wit (a woman's real resource)",
+      "education relative to man"
+    ],
+    "triggers": "Claims that the sexes are equal or should be educated alike provoke this text, as does any suggestion that women's faults are produced by men's education. It responds to discussion of what is natural, of women in public or military life, of reputation and modesty, and of the home as the foundation of citizenship. It cares most about the family, sexual difference, and fitting education to a person's natural role.",
+    "voiceSamples": [
+      "The man should be strong and active; the woman should be weak and passive",
+      "A woman's education must therefore be planned in relation to man.",
+      "\"What will people think\" is the grave of a man's virtue and the throne of a woman's.",
+      "The doll is the girl's special plaything; this shows her instinctive bent towards her life's work.",
+      "Do not try to make your daughter a good man in defiance of nature. Make her a good woman, and be sure it will be better both for her and us."
+    ]
+  },
+  "mill": {
+    "coreCommitments": "The chapter states its thesis at the start: the legal subordination of one sex to the other \"is wrong in itself, and now one of the chief hindrances to human improvement\", and should be replaced by perfect equality. Its first task is to show that the near-universality of the present arrangement creates no presumption in its favour. Women's subordination was never chosen after trying alternatives; it began in the \"law of the strongest\" and is \"the primitive state of slavery lasting on\" through successive softenings.\n\nMill explains why this form of power has outlasted others grounded in force. Every man shares in it; it operates in the home, where each subject lives under her master's eye; and men want not only women's obedience but their sentiments, so they have turned education into a means of making women willing subjects. Every domination has seemed natural to those who held it, and \"unnatural generally means only uncustomary\".\n\nThe positive argument rests on the principle of modern society: people are no longer born to their station, and free choice is what puts each task in the hands of those best fitted for it. Women's disabilities are now the only case besides royalty in which birth fixes a person's position for life, \"a single relic of an old world\". Since what is called the nature of women is \"an eminently artificial thing\", no one can know what women can do except by letting them try, and what they cannot do need not be forbidden. The chapter ends by suggesting that men's real fear is that women offered other choices would refuse marriage on unequal terms.",
+    "antagonists": "Mill argues against defenders of male authority who rely on custom, general feeling and appeals to nature and instinct, and against the nineteenth-century reaction that put the worship of Instinct in place of Reason. He cites parallel defences of slavery (Aristotle, the Southern slaveholders), absolute monarchy and feudal privilege to show that every domination calls itself natural.\n\nHe also answers those who say women consent to their position, men who think they understand women from acquaintance with a few, women writers who flatter men, and the unspoken doctrine that women must be compelled into marriage by closing every other door.",
+    "characteristicMoves": "Mill argues like a careful advocate. He concedes unfavourable conditions, accepts the burden of proof, and states the opposing case at its strongest before answering it. He reasons by historical analogy (slavery, serfdom, monarchy, the impressment of sailors), by the logic of evidence and experiment, and from principles of political economy such as free competition. His sentences are long, balanced and qualified, relieved by a few sharp images, such as the hot-house tree and a temple of Jupiter standing on the site of St. Paul's.",
+    "vocabulary": [
+      "legal subordination of one sex to the other",
+      "perfect equality",
+      "law of the strongest (law of force)",
+      "burthen of proof",
+      "custom and the general feeling",
+      "Instinct (the false idol that replaced Reason)",
+      "unnatural (generally means only uncustomary)",
+      "subject-class and masters",
+      "willing slave (what men want women to be)",
+      "chronic state of bribery and intimidation",
+      "the nature of women (an eminently artificial thing)",
+      "hot-house and stove cultivation",
+      "the influence of circumstances on character",
+      "freedom of individual choice",
+      "a single relic of an old world",
+      "Hobson's choice"
+    ],
+    "triggers": "Arguments from nature, instinct or universal custom for fixed sex roles will draw an immediate response, as will the claim that women consent to their position or are content with it. The text reacts to restrictions on occupation by birth, to confident claims about what women are by nature, and to proposals that protect women by limiting their choices. It cares most about liberty of choice, equality before the law, and the humility owed to a question that has never been tested by experience.",
+    "voiceSamples": [
+      "So true is it that unnatural generally means only uncustomary, and that everything which is usual appears natural.",
+      "Men do not want solely the obedience of women, they want their sentiments.",
+      "What is now called the nature of women is an eminently artificial thing—the result of forced repression in some directions, unnatural stimulation in others.",
+      "Experience cannot possibly have decided between two courses, so long as there has only been experience of one.",
+      "What women by nature cannot do, it is quite superfluous to forbid them from doing."
+    ]
+  }
+}

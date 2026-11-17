@@ -1,0 +1,81 @@
+[
+  {
+    "slug": "minds-and-machines",
+    "name": "Minds and Machines, 1843–1872",
+    "description": "Ruskin argues that demanding machine-like precision turns workmen into tools and shuts thought out of their work; Lovelace explains what a calculating engine can and cannot do; Butler imagines machines evolving into humanity's successors. Public-domain texts from Project Gutenberg/Wikisource; some are excerpts.",
+    "papers": [
+      {
+        "title": "The Nature of Gothic (opening: Savageness)",
+        "author": "John Ruskin",
+        "year": 1853
+      },
+      {
+        "title": "Notes by the Translator: Note A and Note G (selections)",
+        "author": "Ada Lovelace",
+        "year": 1843
+      },
+      {
+        "title": "Darwin Among the Machines",
+        "author": "Samuel Butler",
+        "year": 1863
+      },
+      {
+        "title": "The Book of the Machines (Erewhon, 1872, chs. 21–23)",
+        "author": "Samuel Butler",
+        "year": 1872
+      }
+    ],
+    "words": 24661
+  },
+  {
+    "slug": "education-debate",
+    "name": "The Education Debate, 1892–1903",
+    "description": "Washington argues that Black Southerners should build up through industrial training and defer the fight for political rights; Du Bois answers that higher education and the ballot cannot wait; Cooper makes the case for the higher education of Black women. Public-domain texts from Project Gutenberg/Wikisource; some are excerpts.",
+    "papers": [
+      {
+        "title": "Of Mr. Booker T. Washington and Others",
+        "author": "W. E. B. Du Bois",
+        "year": 1903
+      },
+      {
+        "title": "The Atlanta Exposition Address (Up from Slavery, ch. 14)",
+        "author": "Booker T. Washington",
+        "year": 1895
+      },
+      {
+        "title": "Of the Training of Black Men",
+        "author": "W. E. B. Du Bois",
+        "year": 1903
+      },
+      {
+        "title": "The Higher Education of Woman",
+        "author": "Anna Julia Cooper",
+        "year": 1892
+      }
+    ],
+    "words": 21576
+  },
+  {
+    "slug": "women-and-reason",
+    "name": "Women, Reason, and Education, 1762–1869",
+    "description": "Rousseau holds that women should be educated to please and serve men; Wollstonecraft answers him point by point, insisting that virtue and reason have no sex; Mill argues that the subordination of women rests on custom and force, not on any knowledge of their nature. Public-domain texts from Project Gutenberg/Wikisource; some are excerpts.",
+    "papers": [
+      {
+        "title": "A Vindication of the Rights of Woman, ch. 5, sect. I (on Rousseau)",
+        "author": "Mary Wollstonecraft",
+        "year": 1792
+      },
+      {
+        "title": "Emile, Book V: Sophy, or Woman (opening)",
+        "author": "Jean-Jacques Rousseau (trans. Barbara Foxley)",
+        "year": 1762
+      },
+      {
+        "title": "The Subjection of Women, ch. 1",
+        "author": "John Stuart Mill",
+        "year": 1869
+      }
+    ],
+    "words": 29280
+  }
+]

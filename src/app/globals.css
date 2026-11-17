@@ -2,15 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  word-break: break-word;
-  overflow-wrap: break-word;
+:root {
+  --paper: #ffffff;
+  color-scheme: light;
 }
 
-/* Serif font for reading content */
-.font-serif {
-  font-family: Georgia, 'Times New Roman', serif;
+.dark {
+  --paper: #141826;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reading text */
+.prose-reading {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  font-feature-settings: 'kern', 'liga', 'onum';
 }
 
 /* Smooth color transitions for theme switching */
@@ -20,7 +34,17 @@ body {
   transition-timing-function: ease-in-out;
 }
 
-/* Disable transitions on page load to prevent flash */
 .no-transitions * {
   transition: none !important;
+}
+
+::selection {
+  background: rgba(0, 61, 165, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+  }
 }

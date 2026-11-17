@@ -529,139 +529,230 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-300 rounded-full" />
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="animate-spin w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full" />
       </div>
     );
   }
 
+  const newWorkspace = () => {
+    const name = prompt('Name the new workspace:');
+    if (name?.trim()) handleCreateWorkspace(name.trim());
+  };
+
+  // First visit, or no workspace chosen: a landing page rather than an empty reader.
+  if (!activeWorkspace) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+        <MigrationBanner />
+        <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="max-w-6xl mx-auto h-14 px-4 sm:px-6 flex items-center gap-4">
+            <span className="font-display text-xl font-semibold text-gray-900 dark:text-gray-50">Marginalia</span>
+            <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">CUNY AI Lab</span>
+            <div className="ml-auto flex items-center gap-3">
+              <QuotaMeter />
+              <ThemeToggle />
+              <Link href="/library" className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Library</Link>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+          <div className="max-w-2xl">
+            <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+              Read with your sources in the margins.
+            </h1>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+              Open one text and select a passage. The other texts in your workspace say whether they
+              agree, push back or add context, each from its own position and in its own words.
+            </p>
+          </div>
+          <div className="mt-10">
+            <DemoSets />
+          </div>
+          <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-4">
+            <button
+              onClick={newWorkspace}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+            >
+              Start with your own texts
+            </button>
+            {workspaces.length > 0 && (
+              <WorkspaceSwitcher workspaces={workspaces} activeWorkspace={activeWorkspace} onSwitch={switchWorkspace} onCreate={handleCreateWorkspace} />
+            )}
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              PDFs and text files stay in this browser. Comments use your CUNY AI Lab model allowance.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const selectedEngagements = selectedParagraphIndex !== null ? engagements.get(selectedParagraphIndex) || [] : [];
+
   return (
-    <div className="h-screen flex flex-col bg-stone-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       <MigrationBanner />
 
-      {/* Header */}
-      <header className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-serif font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">Marginalia</h1>
-
+      <header className="flex-shrink-0 h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="h-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 min-w-0">
+          <Link href="/" className="font-display text-xl font-semibold text-gray-900 dark:text-gray-50 flex-shrink-0">
+            Marginalia
+          </Link>
+          <span className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-gray-700 flex-shrink-0" aria-hidden="true" />
+          <div className="min-w-0 max-w-[16rem] flex-shrink">
             <WorkspaceSwitcher
               workspaces={workspaces}
               activeWorkspace={activeWorkspace}
               onSwitch={switchWorkspace}
               onCreate={handleCreateWorkspace}
             />
-
-            {/* Active paper selector (within workspace) */}
-            {activeWorkspace && workspacePapers.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400 dark:text-gray-500">Reading:</span>
-                <select
-                  value={activePaper?.id || ''}
-                  onChange={e => handleSetActivePaper(e.target.value)}
-                  className="text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  {!activePaper && <option value="">Select a paper...</option>}
-                  {workspacePapers.map(paper => (
-                    <option key={paper.id} value={paper.id}>
-                      {paper.title}
-                    </option>
-                  ))}
-                </select>
-                {/* Scan document button */}
-                {activePaper && commentingPapers.length > 0 && (
-                  <button
-                    onClick={scanDocumentEngagements}
-                    disabled={scanningDocument}
-                    className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                    title="Scan entire document to see which paragraphs have relevant commentary"
-                  >
-                    {scanningDocument ? (
-                      <>
-                        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        {scanProgress ? `${scanProgress.current}/${scanProgress.total}` : 'Scanning...'}
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Scan
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-4">
+          {workspacePapers.length > 0 && (
+            <div className="hidden md:flex items-center gap-2 min-w-0 flex-shrink">
+              <label htmlFor="reading-select" className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 flex-shrink-0">
+                Reading
+              </label>
+              <select
+                id="reading-select"
+                value={activePaper?.id || ''}
+                onChange={e => handleSetActivePaper(e.target.value)}
+                className="min-w-0 max-w-[22rem] truncate text-sm rounded-md border border-gray-200 dark:border-gray-700 pl-2 pr-7 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
+              >
+                {!activePaper && <option value="">Choose a text…</option>}
+                {workspacePapers.map(paper => (
+                  <option key={paper.id} value={paper.id}>
+                    {paper.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {activePaper && commentingPapers.length > 0 && (
+            <button
+              onClick={scanDocumentEngagements}
+              disabled={scanningDocument}
+              className="hidden lg:inline-flex flex-shrink-0 items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-md text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30 disabled:opacity-60 disabled:cursor-wait"
+              title="Mark every paragraph that your sources would respond to (uses your allowance)"
+            >
+              <svg className={`w-4 h-4 ${scanningDocument ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                {scanningDocument ? (
+                  <path strokeLinecap="round" strokeWidth={2} d="M12 3a9 9 0 109 9" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+                )}
+              </svg>
+              {scanningDocument ? (scanProgress ? `Scanning ${scanProgress.current}/${scanProgress.total}` : 'Scanning…') : 'Scan text'}
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <QuotaMeter />
             <ThemeToggle />
-            <button
-              onClick={() => setPanelOpen(!panelOpen)}
-              className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            >
-              {panelOpen ? 'Hide panel' : 'Show panel'}
-            </button>
-            {activeWorkspace && workspacePapers.length > 0 && (
+            {workspacePapers.length > 0 && (
               <button
                 onClick={() => setShowShareDialog(true)}
-                className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1"
+                className="inline-flex items-center gap-1.5 text-sm px-2 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
+                title="Share this workspace"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
-                Share
+                <span className="hidden xl:inline">Share</span>
               </button>
             )}
-            <Link href="/library" className="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-              Library ({commentingPapers.length + (activePaper ? 1 : 0)})
+            <button
+              onClick={() => setPanelOpen(!panelOpen)}
+              className="inline-flex items-center text-sm px-2 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
+              title={panelOpen ? 'Hide the margins' : 'Show the margins'}
+              aria-pressed={panelOpen}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" strokeWidth={2} />
+                <path strokeWidth={2} d="M15 4v16" />
+              </svg>
+              <span className="sr-only">{panelOpen ? 'Hide the margins' : 'Show the margins'}</span>
+            </button>
+            <Link
+              href="/library"
+              className="text-sm px-2.5 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800 whitespace-nowrap"
+            >
+              Library
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
-        {/* Reading pane */}
-        <div
-          className="flex-1 overflow-y-auto"
-          style={{ width: panelOpen ? `${100 - panelWidth}%` : '100%' }}
-        >
-          <ReadingPane
-            document={documentForPane}
-            sources={sourcesForComponents}
-            selectedParagraph={selectedParagraphIndex}
-            engagements={engagements}
-            loadingEngagement={loadingEngagement}
-            onSelectParagraph={handleSelectParagraph}
-            onClickSourceFlag={handleClickSourceFlag}
-          />
+        <div className="flex-1 overflow-y-auto bg-paper" style={{ width: panelOpen ? `${100 - panelWidth}%` : '100%' }}>
+          {workspacePapers.length === 0 ? (
+            <div className="h-full flex items-center justify-center p-8">
+              <div className="max-w-md text-center">
+                <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-50">{activeWorkspace.name} is empty</h2>
+                <p className="mt-3 text-gray-600 dark:text-gray-300">
+                  Add two or more texts from your library: one to read, and others to comment on it.
+                </p>
+                <Link
+                  href="/library"
+                  className="mt-6 inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+                >
+                  Add texts from the library
+                </Link>
+              </div>
+            </div>
+          ) : !activePaper ? (
+            <div className="h-full flex items-center justify-center p-8">
+              <div className="max-w-md">
+                <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-50 text-center">Which text will you read?</h2>
+                <ul className="mt-6 space-y-2">
+                  {workspacePapers.map(paper => (
+                    <li key={paper.id}>
+                      <button
+                        onClick={() => handleSetActivePaper(paper.id)}
+                        className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-blue-600 dark:hover:border-blue-400"
+                      >
+                        <span className="block font-medium text-gray-900 dark:text-gray-100">{paper.title}</span>
+                        <span className="block text-sm text-gray-500 dark:text-gray-400">{paper.author}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <ReadingPane
+              document={documentForPane}
+              sources={sourcesForComponents}
+              selectedParagraph={selectedParagraphIndex}
+              engagements={engagements}
+              loadingEngagement={loadingEngagement}
+              onSelectParagraph={handleSelectParagraph}
+              onClickSourceFlag={handleClickSourceFlag}
+            />
+          )}
         </div>
 
-        {/* Resize handle - wider hit area with thin visual line */}
         {panelOpen && (
           <div
-            className="w-2 flex-shrink-0 cursor-col-resize group flex items-center justify-center"
+            className="w-1.5 flex-shrink-0 cursor-col-resize group flex items-center justify-center bg-white dark:bg-gray-900"
             onMouseDown={() => setIsResizing(true)}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize the margins"
           >
-            <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 group-hover:bg-blue-400 dark:group-hover:bg-blue-500 transition-colors" />
+            <div className="w-px h-full bg-gray-200 dark:bg-gray-800 group-hover:bg-blue-500 transition-colors" />
           </div>
         )}
 
-        {/* Conversation panel */}
         {panelOpen && (
-          <div
-            className="flex-shrink-0 overflow-hidden"
-            style={{ width: `${panelWidth}%` }}
-          >
+          <div className="flex-shrink-0 overflow-hidden" style={{ width: `${panelWidth}%` }}>
             <ConversationPanel
               sources={sourcesForComponents}
               engagedSourceIds={currentEngagedPaperIds}
+              engagements={selectedEngagements}
+              checkingRelevance={loadingEngagement !== null && loadingEngagement === selectedParagraphIndex}
               responses={responses}
               loadingSourceId={loadingSourceId}
               selectedParagraph={selectedParagraph}
@@ -675,72 +766,12 @@ export default function Home() {
         )}
       </div>
 
-      {/* Empty state - no workspace */}
-      {!activeWorkspace && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center pointer-events-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-serif text-gray-700 dark:text-gray-200 mb-4">Welcome to Marginalia</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-              Read one text while the others in your workspace comment on it from their own
-              positions. Start with a demo set, or create a workspace for your own papers.
-            </p>
-            <DemoSets />
-            <button
-              onClick={() => {
-                const name = prompt('Workspace name:');
-                if (name) handleCreateWorkspace(name);
-              }}
-              className="mt-6 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md text-sm hover:bg-gray-800 dark:hover:bg-gray-200"
-            >
-              Create an empty workspace
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state - workspace but no papers */}
-      {activeWorkspace && workspacePapers.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center pointer-events-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-            <h2 className="text-xl font-serif text-gray-700 dark:text-gray-200 mb-4">
-              Workspace: {activeWorkspace.name}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-              This workspace is empty. Add papers from your library to start reading with
-              commentary.
-            </p>
-            <Link
-              href="/library"
-              className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md text-sm hover:bg-gray-800 dark:hover:bg-gray-200 inline-block"
-            >
-              Go to Library
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state - papers but none selected */}
-      {activeWorkspace && workspacePapers.length > 0 && !activePaper && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center pointer-events-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-            <h2 className="text-xl font-serif text-gray-700 dark:text-gray-200 mb-4">Select a Paper to Read</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-              Choose a paper from the dropdown above to start reading with commentary from other
-              papers in this workspace.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Share workspace dialog */}
-      {activeWorkspace && (
-        <ShareWorkspaceDialog
-          workspace={activeWorkspace}
-          papers={workspacePapers}
-          isOpen={showShareDialog}
-          onClose={() => setShowShareDialog(false)}
-        />
-      )}
+      <ShareWorkspaceDialog
+        workspace={activeWorkspace}
+        papers={workspacePapers}
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+      />
     </div>
   );
 }

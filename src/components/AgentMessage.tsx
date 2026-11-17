@@ -1,43 +1,47 @@
 'use client';
 
+import Markdown from 'react-markdown';
 import { Source } from '@/lib/types';
 
 interface AgentMessageProps {
   source: Source;
+  name?: string;
   content: string;
   isStreaming?: boolean;
 }
 
-export default function AgentMessage({ source, content, isStreaming = false }: AgentMessageProps) {
+// One source's comment, set like a marginal note: the source's color as a rule, its name, then the note.
+export default function AgentMessage({ source, name, content, isStreaming = false }: AgentMessageProps) {
+  const failed = !isStreaming && /^(Failed to generate response|The model|The request|The response|Sign in|Your sign-in)/.test(content);
   return (
-    <div className="group">
-      <div className="flex items-center gap-2 mb-1.5">
-        <div
-          className="w-2 h-2 rounded-full flex-shrink-0"
-          style={{ backgroundColor: source.color }}
-        />
-        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          {source.title.length > 30 ? source.title.slice(0, 30) + '...' : source.title}
-        </span>
-        <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-          {source.author}
-        </span>
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden" style={{ borderLeft: `3px solid ${source.color}` }}>
+      <div className="px-4 pt-3 pb-1 flex items-baseline gap-2 min-w-0">
+        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">{name || source.author}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 truncate" title={source.title}>{source.title}</span>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-200 leading-relaxed pl-4">
-        {content || (isStreaming && (
-          <span className="text-gray-400 dark:text-gray-500 italic flex items-center gap-1">
-            Thinking
-            <span className="flex gap-0.5 ml-1">
-              <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className={`px-4 pb-3 font-serif text-[0.95rem] leading-relaxed ${failed ? 'text-red-700 dark:text-red-300' : 'text-gray-800 dark:text-gray-200'}`}>
+        {content ? (
+          <Markdown
+            components={{
+              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              a: ({ children }) => <span className="underline">{children}</span>,
+              img: () => null,
+            }}
+          >
+            {content}
+          </Markdown>
+        ) : isStreaming ? (
+          <span className="font-sans text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+            Reading the passage
+            <span className="inline-flex gap-0.5" aria-hidden="true">
+              {[0, 150, 300].map(delay => (
+                <span key={delay} className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+              ))}
             </span>
           </span>
-        ))}
-        {content && isStreaming && (
-          <span className="inline-block w-1.5 h-4 bg-gray-400 dark:bg-gray-500 ml-0.5 animate-pulse align-text-bottom" />
-        )}
-      </p>
+        ) : null}
+        {content && isStreaming && <span className="inline-block w-1.5 h-4 bg-blue-600/60 ml-0.5 animate-pulse align-text-bottom" aria-hidden="true" />}
+      </div>
     </div>
   );
 }
